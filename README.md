@@ -1,29 +1,15 @@
 # Impact of ECB Monetary Policy and Euro Adoption on Croatian Bond Yields
 
-Empirical analysis of the effects of ECB rate hikes and Croatia's euro adoption on sovereign bond yields, using Difference-in-Differences (DiD) models, event studies, placebo tests, and robust inference.
-
-## Hypotheses
-
-- **H1**: The ECB's first rate hike on 27 July 2022 had a statistically significant differential effect on Croatian 10-year bond yields relative to comparable euro area peers
-- **H1b**: The ECB's rate hike on 2 February 2023 had a differential effect on Croatian yields after euro adoption
-- **H2**: Croatia's euro adoption on 1 January 2023 led to convergence of Croatian-German yield spreads
-
-## Methodology
-
-- Difference-in-Differences estimation with baseline and country fixed-effects specifications
-- HC3 and HAC (Newey-West) robust standard errors
-- Parallel trends diagnostics and placebo tests
-- Event-study analysis around key policy dates
-- Robustness checks with alternative control-group compositions and time windows
+Code, data, and outputs for the empirical analysis in the paper.
 
 ## Structure
 
 ```text
-CODE/           Minimal analysis scripts
-DATA/           Verified analytical panel and descriptive CSV exports
+CODE/           Analysis scripts
+DATA/           Analytical dataset and descriptive CSV exports
 OUTPUTS/
-  figures/      Final paper figures
-  raw_outputs/  Raw analytical outputs used to populate paper tables
+  figures/      Figures
+  raw_outputs/  Text outputs used for tables and result checks
 ```
 
 ## Usage
@@ -33,31 +19,23 @@ pip install pandas numpy statsmodels matplotlib seaborn scipy
 python CODE/run_all.py
 ```
 
-`run_all.py` regenerates the descriptive CSV exports, paper figures, regression reports, placebo outputs, event studies, and HAC/VIF appendix outputs.
+Running `CODE/run_all.py` writes:
+- descriptive CSV exports to `DATA/`
+- text outputs to `OUTPUTS/raw_outputs/`
+- figures to `OUTPUTS/figures/`
 
-`adjustText` is optional. If installed, it improves label placement in selected figures, but the lean replication pipeline runs without it.
+`adjustText` is optional. If installed, it is used only for figure label placement where needed.
 
-The lean pipeline is organized around:
-- `descriptive_exports.py` for `DATA/descriptive_stats_*.csv`
-- `paper_figures.py` for the final figure set used in the paper
-- raw `OUTPUTS/raw_outputs/*.txt` files as the source of truth behind the regression, placebo, robustness, and event-study tables
-- `DATA/input_data.csv` as the verified analytical panel used by the lean replication pipeline
+## Main Files
+
+- `CODE/run_all.py`: main entry point
+- `DATA/input_data.csv`: analytical panel used in the regressions
+- `DATA/descriptive_stats_*.csv`: descriptive exports
+- `OUTPUTS/raw_outputs/*.txt`: regression, placebo, robustness, event-study, and HAC outputs
+- `OUTPUTS/figures/*.png`: figure files
 
 ## Data Sources
 
-- **Bond yields**: Investing.com (10-year government bond yields)
-- **Macroeconomic indicators**: Eurostat (GDP growth, HICP inflation, public debt)
-- **ECB events**: European Central Bank policy rate decisions
-
-## Analysis Panels
-
-- **Core H1/H2 panel**: Croatia, Slovenia, Slovakia, Lithuania
-- **H1b extension**: Croatia, Slovenia, Slovakia, Lithuania, France, Germany
-- **Latvia**: excluded from the final panel due to incomplete Investing.com bond-yield data
-
-## Replication Notes
-
-- The repo is streamlined for the final paper replication workflow.
-- The repo intentionally starts from the verified merged panel `DATA/input_data.csv`; raw download and merge scripts are omitted to keep the project lean.
-- Descriptive tables in the paper should be read off the refreshed CSV exports in `DATA/`.
-- Regression and event-study tables in the paper should be populated from the corresponding raw outputs in `OUTPUTS/raw_outputs/`.
+- Bond yields: Investing.com
+- Macroeconomic indicators: Eurostat
+- ECB events: European Central Bank policy rate decisions
