@@ -17,6 +17,8 @@ OUTPUT_FIGURES = ROOT.parent / "OUTPUTS" / "figures"
 PIPELINE = [
     ("h1_ecb_rate_hike_impact", [
         OUTPUT_REPORTS / "h1_regression_results.txt",
+        OUTPUT_REPORTS / "h1_placebo_results.txt",
+        OUTPUT_FIGURES / "h1_placebo_tests.png",
     ]),
     ("h1_hac_vif_appendix", [
         OUTPUT_REPORTS / "h1_hac_results.txt",
@@ -33,6 +35,8 @@ PIPELINE = [
     ]),
     ("h2_euro_adoption_impact", [
         OUTPUT_REPORTS / "h2_regression_results.txt",
+        OUTPUT_REPORTS / "h2_placebo_results.txt",
+        OUTPUT_FIGURES / "h2_placebo_tests.png",
         OUTPUT_FIGURES / "h2_spread_convergence_did.png",
         OUTPUT_FIGURES / "h2_spread_timeseries.png",
         OUTPUT_FIGURES / "h2_robustness_checks.png",
@@ -47,8 +51,6 @@ PIPELINE = [
     ]),
     ("placebo_column_c", [
         OUTPUT_REPORTS / "placebo_column_c_results.txt",
-        OUTPUT_FIGURES / "h1_placebo_tests.png",
-        OUTPUT_FIGURES / "h2_placebo_tests.png",
     ]),
     ("f_test_comparison", [
         OUTPUT_REPORTS / "f_test_comparison_results.txt",

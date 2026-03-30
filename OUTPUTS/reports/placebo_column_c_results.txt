@@ -1,12 +1,12 @@
 ======================================================================
-PLACEBO TESTS — COLUMN C SPECIFICATION
+PLACEBO TESTS - COLUMN C SPECIFICATION
 Each regression includes the actual treatment indicator,
 so that placebo coefficients are net of the real treatment effect.
 HC3 robust standard errors throughout.
 ======================================================================
 
 H1: ECB rate hike (27 July 2022)
-  Panel: Croatia, Slovenia, Slovakia, Lithuania
+  Panel: Croatia, Lithuania, Slovakia, Slovenia
   Sample: 2021-01-01 to 2024-12-31  N=4082
 
   Placebo 1 (2021-04-27, -15mo): coef=-0.3984  SE=0.0552  p=0.0000 ***
@@ -16,7 +16,7 @@ H1: ECB rate hike (27 July 2022)
   Placebo 5 (2022-04-27, -3mo): coef=+0.0122  SE=0.0494  p=0.8040 
 
 H2: Euro adoption (1 January 2023)
-  Panel: Croatia, Slovenia, Slovakia, Lithuania
+  Panel: Croatia, Lithuania, Slovakia, Slovenia
   Sample: 2021-01-01 to 2024-12-31  N=4082
 
   Placebo 1 (2021-01-01, -24mo): coef=+0.3591  SE=0.0083  p=0.0000 ***
