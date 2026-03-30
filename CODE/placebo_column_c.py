@@ -1,20 +1,18 @@
 """
 Compatibility wrapper for the combined Column C placebo report.
 
-The source-of-truth placebo logic now lives inside:
+The source-of-truth placebo logic lives inside:
   - h1_ecb_rate_hike_impact.py
   - h2_euro_adoption_impact.py
 
-This script keeps the legacy combined output file
-`placebo_column_c_results.txt` for backwards compatibility.
+This script only aggregates the two standalone placebo reports into the
+legacy combined output file `placebo_column_c_results.txt`.
 """
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-
-import pandas as pd
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -25,59 +23,35 @@ if sys.platform == "win32":
         pass
 
 from io_utils import write_text
-from h1_ecb_rate_hike_impact import prepare_h1_panel, run_h1_column_c_placebos
-from h2_euro_adoption_impact import prepare_h2_panel, run_h2_column_c_placebos
+from placebo_utils import extract_report_body
 
 ROOT = Path(__file__).resolve().parent
-DATA_PATH = ROOT.parent / "DATA" / "input_data.csv"
+REPORTS_DIR = ROOT.parent / "OUTPUTS" / "reports"
+H1_REPORT = REPORTS_DIR / "h1_placebo_results.txt"
+H2_REPORT = REPORTS_DIR / "h2_placebo_results.txt"
 
 
-def _sig_stars(pval: float) -> str:
-    if pval < 0.001:
-        return "***"
-    if pval < 0.01:
-        return "**"
-    if pval < 0.05:
-        return "*"
-    return ""
+def _load_body(report_path: Path) -> list[str]:
+    if not report_path.exists():
+        raise FileNotFoundError(
+            f"Missing dependency: {report_path.name}. "
+            "Run the corresponding H1/H2 analysis first."
+    )
+    return extract_report_body(report_path.read_text(encoding="utf-8"))
 
 
-def _format_section(title: str, payload: dict) -> list[str]:
-    lines = [
-        title,
-        f"  Panel: {', '.join(payload['countries'])}",
-        f"  Sample: 2021-01-01 to 2024-12-31  N={payload['sample_n']}",
-        "",
-    ]
-
-    for result in payload['results']:
-        lines.append(
-            f"  {result['name']} ({result['date']}, -{result['months_before']}mo): "
-            f"coef={result['coefficient']:+.4f}  SE={result['se']:.4f}  "
-            f"p={result['pvalue']:.4f} {_sig_stars(result['pvalue'])}"
-        )
-    return lines
+def _trim_to_placebo_section(lines: list[str]) -> list[str]:
+    trimmed = []
+    for line in lines:
+        if line.startswith("Main Effect"):
+            break
+        trimmed.append(line)
+    while trimmed and trimmed[-1] == "":
+        trimmed.pop()
+    return trimmed
 
 
 def run() -> None:
-    df = pd.read_csv(DATA_PATH, parse_dates=["date"])
-
-    h1_payload = run_h1_column_c_placebos(
-        prepare_h1_panel(df),
-        save_report=False,
-        save_plot=False,
-        verbose=True,
-    )
-
-    print()
-
-    h2_payload = run_h2_column_c_placebos(
-        prepare_h2_panel(df),
-        save_report=False,
-        save_plot=False,
-        verbose=True,
-    )
-
     lines = [
         "=" * 70,
         "PLACEBO TESTS - COLUMN C SPECIFICATION",
@@ -87,11 +61,13 @@ def run() -> None:
         "=" * 70,
         "",
     ]
-    lines.extend(_format_section("H1: ECB rate hike (27 July 2022)", h1_payload))
-    lines.extend([
-        "",
-    ])
-    lines.extend(_format_section("H2: Euro adoption (1 January 2023)", h2_payload))
+
+    h1_body = _trim_to_placebo_section(_load_body(H1_REPORT))
+    h2_body = _trim_to_placebo_section(_load_body(H2_REPORT))
+
+    lines.extend(h1_body)
+    lines.append("")
+    lines.extend(h2_body)
     lines.append("")
 
     write_text("placebo_column_c_results.txt", "\n".join(lines) + "\n")
