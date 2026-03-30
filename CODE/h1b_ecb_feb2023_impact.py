@@ -14,19 +14,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 
-from io_utils import save_figure, write_text
+from io_utils import write_text
 from stats_utils import build_vif_table
-from plot_utils import (
-    make_subplots,
-    add_dual_outline,
-    label_bars_with_significance,
-)
 
 if sys.platform == "win32":
     try:
@@ -125,33 +117,6 @@ def run() -> None:
             lines.append(f"  {row['Variable']}: VIF=N/A")
     lines.append("")
     write_text("h1b_regression_results.txt", "\n".join(lines) + "\n")
-
-    fig, ax = make_subplots(figsize=(9, 6))
-    specs = ["Main (HAC)", "Exclude FR/DE (HAC)"]
-    coefs = [did_hac[0], r_did_hac[0]]
-    pvals = [did_hac[2], r_did_hac[2]]
-    bars = ax.bar(range(len(specs)), coefs, color="#0F6CE0", edgecolor="#0F6CE0", alpha=0.9, width=0.6)
-
-    for idx, bar in enumerate(bars):
-        if pvals[idx] is not None and pvals[idx] < 0.05:
-            add_dual_outline(ax, bar)
-
-    ax.axhline(0, color="black", linewidth=1.2)
-    ax.grid(True, alpha=0.3, axis="y", linestyle=":", linewidth=0.8)
-    ax.set_ylabel("DiD Coefficient (percentage points)", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Specification", fontsize=12, fontweight="bold")
-    ax.set_xticks(range(len(specs)))
-    ax.set_xticklabels(specs, fontsize=11)
-
-    label_bars_with_significance(ax, bars, pvalues=pvals)
-
-    legend_elements = [
-        Patch(facecolor="#0F6CE0", edgecolor="#0F6CE0", alpha=0.9, label="Spec (p >= 0.05)"),
-        Patch(facecolor="#0F6CE0", edgecolor="#d62728", linewidth=2, alpha=0.9, label="Spec (p < 0.05)"),
-    ]
-    ax.legend(handles=legend_elements, loc="best", fontsize=10, framealpha=0.95)
-
-    save_figure(fig, "h1b_robustness_checks.png", dpi=300)
 
     print("Saved artefacts for H1b analysis.")
 

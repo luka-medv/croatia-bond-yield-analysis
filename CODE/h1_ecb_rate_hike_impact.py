@@ -10,11 +10,8 @@ Event: ECB first rate hike on July 27, 2022 (+50 bps)
 """
 
 import pandas as pd
-import numpy as np
 import statsmodels.formula.api as smf
 from statsmodels.iolib.summary2 import summary_col
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 from pathlib import Path
 import warnings
 import sys
@@ -26,8 +23,8 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
-from io_utils import save_figure, write_with_writer
-from placebo_utils import compute_placebo_payload, save_placebo_plot, write_standalone_placebo_report
+from io_utils import write_text, write_with_writer
+from placebo_utils import compute_placebo_payload, write_standalone_placebo_report
 
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT.parent / 'DATA' / 'input_data.csv'
@@ -81,29 +78,12 @@ def write_h1_column_c_placebo_report(payload: dict, filename: str = 'h1_placebo_
     )
 
 
-def save_h1_column_c_placebo_plot(
-    payload: dict,
-    filename: str = 'h1_placebo_tests.png',
-    *,
-    actual_label: str = 'Actual Event\n(27 Jul 2022)\n0mo',
-    legend_actual: str = 'Actual ECB Rate Hike',
-) -> None:
-    save_placebo_plot(
-        payload,
-        filename,
-        actual_label=actual_label,
-        legend_actual=legend_actual,
-    )
-
-
 def run_h1_column_c_placebos(
     df_h1: pd.DataFrame,
     *,
     save_report: bool = True,
-    save_plot: bool = True,
     verbose: bool = False,
     report_filename: str = 'h1_placebo_results.txt',
-    plot_filename: str = 'h1_placebo_tests.png',
 ) -> dict:
     payload = compute_h1_column_c_placebos(df_h1)
 
@@ -121,10 +101,21 @@ def run_h1_column_c_placebos(
 
     if save_report:
         write_h1_column_c_placebo_report(payload, report_filename)
-    if save_plot:
-        save_h1_column_c_placebo_plot(payload, plot_filename)
 
     return payload
+
+
+def _write_simple_latex_table(df: pd.DataFrame, filename: str, column_format: str) -> None:
+    latex = df.to_latex(
+        index=False,
+        escape=False,
+        column_format=column_format,
+        float_format=lambda x: f"{x:.4f}",
+    )
+    latex = latex.replace("\\toprule", "\\hline")
+    latex = latex.replace("\\midrule", "\\hline")
+    latex = latex.replace("\\bottomrule", "\\hline")
+    write_text(filename, latex)
 
 
 def run():
@@ -164,19 +155,6 @@ def run():
 
     print("\nDescriptive Statistics: Bond Yields by Country and Period")
     print(desc_stats)
-
-    desc_table = (
-        desc_stats.reset_index()
-        .rename(columns={'country': 'Country', 'period': 'Period'})
-    )
-
-    table_tex = desc_table.to_latex(
-        index=False,
-        column_format='llrrrrr',
-        float_format=lambda x: f"{x:.4f}",
-    )
-
-    write_with_writer('h1_descriptive_statistics.tex', lambda handle: handle.write(table_tex))
 
     # ============================================================
     # PRE-TREATMENT PARALLEL TRENDS TEST
@@ -249,7 +227,6 @@ def run():
     placebo_payload = run_h1_column_c_placebos(
         df_h1,
         save_report=True,
-        save_plot=True,
         verbose=True,
     )
     placebo_results = placebo_payload['results']
@@ -338,6 +315,43 @@ def run():
             'Adj. R²': lambda x: f"{x.rsquared_adj:.4f}"
         }
     )
+
+    latex_regression = results_table.as_latex()
+    for old, new in {
+        "croatia_ex_post": "Croatia x Post",
+        "post_july_2022_hike": "Post July 2022",
+        "is_croatia": "Croatia Indicator",
+        "gdp_growth_quarterly": "GDP Growth",
+        "inflation_hicp": "Inflation (HICP)",
+        "public_debt_gdp": "Public Debt",
+        "C(country)[T.Slovakia]": "Slovakia",
+        "C(country)[T.Slovenia]": "Slovenia",
+        "C(country)[T.Lithuania]": "Lithuania",
+    }.items():
+        latex_regression = latex_regression.replace(old, new)
+    write_text("table_4_1_h1_regression.tex", latex_regression)
+
+    placebo_table = pd.DataFrame([
+        {
+            "Test": row["name"],
+            "Date": row["date"],
+            "Months Before": row["months_before"],
+            "Coefficient": row["coefficient"],
+            "Std. Error": row["se"],
+            "P-value": row["pvalue"],
+        }
+        for row in placebo_results
+    ])
+    _write_simple_latex_table(placebo_table, "table_4_3_h1_placebo.tex", "llrrrr")
+
+    robustness_table = pd.DataFrame([
+        {"Specification": "Main specification", "Coefficient": did_coef, "P-value": did_pval},
+        {"Specification": "Exclude Slovenia", "Coefficient": robust_coef_1, "P-value": robust_pval_1},
+        {"Specification": "Exclude Slovakia", "Coefficient": robust_coef_2, "P-value": robust_pval_2},
+        {"Specification": "Exclude Lithuania", "Coefficient": robust_coef_3, "P-value": robust_pval_3},
+        {"Specification": "2022-2024 only", "Coefficient": robust_coef_4, "P-value": robust_pval_4},
+    ])
+    _write_simple_latex_table(robustness_table, "table_4_5_h1_robustness.tex", "lrr")
 
 
     if did_pval < 0.01:
@@ -438,115 +452,10 @@ def run():
         handle.write("\n".join(lines) + "\n")
 
     write_with_writer('h1_regression_results.txt', _write_results)
-
-
-
-
-    # ============================================================
-    # VISUALIZATION 1: Main DiD Plot
-    # ============================================================
-    print("\n[11/13] Creating main DiD visualization...")
-
-    avg_yields = (
-        df_h1.groupby(['is_croatia', 'period'])['bond_yield_10y']
-        .agg(mean='mean', std='std', n='count')
-        .reset_index()
-    )
-    avg_yields['sem'] = avg_yields['std'] / np.sqrt(avg_yields['n'].clip(lower=1))
-    avg_yields['ci95'] = 1.96 * avg_yields['sem']
-    avg_yields = avg_yields.set_index(['is_croatia', 'period'])
-
-    fig, ax = plt.subplots(figsize=(20, 12))
-
-    periods = ['Pre-Hike', 'Post-Hike']
-    x_positions = np.array([0, 1])
-
-    def _extract_series(is_croatia_flag):
-        means = np.array([
-            avg_yields.loc[(is_croatia_flag, periods[0]), 'mean'],
-            avg_yields.loc[(is_croatia_flag, periods[1]), 'mean'],
-        ])
-        cis = np.array([
-            avg_yields.loc[(is_croatia_flag, periods[0]), 'ci95'],
-            avg_yields.loc[(is_croatia_flag, periods[1]), 'ci95'],
-        ])
-        return means, cis
-
-    croatia_yields, croatia_ci = _extract_series(1)
-    control_yields, control_ci = _extract_series(0)
-
-    line_croatia, = ax.plot(
-        x_positions, croatia_yields,
-        marker='o', markersize=12, linewidth=3,
-        label='Croatia (Treatment)', color='#e74c3c'
-    )
-    ax.fill_between(
-        x_positions,
-        croatia_yields - croatia_ci,
-        croatia_yields + croatia_ci,
-        color='#e74c3c',
-        alpha=0.5,
-        zorder=1,
-    )
-
-    line_control, = ax.plot(
-        x_positions, control_yields,
-        marker='s', markersize=12, linewidth=3,
-        label='Control Group (SI, SK, LT)', color='#3498db'
-    )
-    ax.fill_between(
-        x_positions,
-        control_yields - control_ci,
-        control_yields + control_ci,
-        color='#3498db',
-        alpha=0.5,
-        zorder=1,
-    )
-
-    counterfactual = croatia_yields[0] + (control_yields[1] - control_yields[0])
-    line_counterfactual, = ax.plot(
-        x_positions,
-        [croatia_yields[0], counterfactual],
-        linestyle='--',
-        linewidth=2.5,
-        color='#95a5a6',
-        label='Croatia Counterfactual'
-    )
-
-    effect_color = 'green' if did_coef < 0 else 'red'
-    ax.annotate(
-        '',
-        xy=(1, croatia_yields[1]),
-        xytext=(1, counterfactual),
-        arrowprops=dict(arrowstyle='<->', color=effect_color, lw=3),
-    )
-    ax.text(
-        1.02,
-        (croatia_yields[1] + counterfactual) / 2,
-        f'DiD Effect:\n{did_coef:.4f}pp',
-        fontsize=11,
-        color=effect_color,
-        ha='left',
-        va='center',
-        bbox=dict(boxstyle='round', facecolor='white', edgecolor=effect_color, linewidth=2),
-    )
-
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(['Pre-Hike\n(Before July 27, 2022)',
-                        'Post-Hike\n(After July 27, 2022)'], fontsize=11)
-    ax.set_ylabel('Average 10-Year Bond Yield (%)', fontsize=12)
-
-    ci_handles = [
-        Patch(facecolor='#e74c3c', alpha=0.32, edgecolor='none', label='Croatia 95% CI'),
-        Patch(facecolor='#3498db', alpha=0.32, edgecolor='none', label='Control 95% CI'),
-    ]
-    legend_handles = [line_croatia, line_control, line_counterfactual, *ci_handles]
-    ax.legend(handles=legend_handles, loc='best', framealpha=0.9)
-
     # ============================================================
     # SUMMARY
     # ============================================================
-    print("\n[13/13] Analysis complete - generating summary...")
+    print("\n[10/10] Analysis complete - generating summary...")
     print("\n" + "=" * 80)
     print("HYPOTHESIS 1 TESTING COMPLETE")
     print("=" * 80)

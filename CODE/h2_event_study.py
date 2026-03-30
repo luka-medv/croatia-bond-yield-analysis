@@ -14,13 +14,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-from io_utils import save_figure, write_text
-from plot_utils import make_subplots, place_legend
+from io_utils import write_text
 
 if sys.platform == "win32":
     try:
@@ -85,16 +83,22 @@ def run() -> None:
         "",
     ]
 
-    values_window5: list[float] = []
-    values_window3: list[float] = []
+    table_rows: list[dict[str, float | str]] = []
 
     lines.append(f"Event: {EVENT_LABEL}")
     for country in COUNTRIES:
         series = abnormal_series(df, country, EVENT_DATE)
         if series is None:
             lines.append(f"  {country}: no data")
-            values_window5.append(np.nan)
-            values_window3.append(np.nan)
+            table_rows.append({
+                "Country": country,
+                "Mean +/-5d": np.nan,
+                "t-stat +/-5d": np.nan,
+                "p-value +/-5d": np.nan,
+                "Mean +/-3d": np.nan,
+                "t-stat +/-3d": np.nan,
+                "p-value +/-3d": np.nan,
+            })
             continue
 
         s5, s3 = series
@@ -105,49 +109,29 @@ def run() -> None:
             f"p={t5.pvalue:.4f}; +/-3d mean={s3.mean():.4f}, "
             f"t={t3.statistic:.2f}, p={t3.pvalue:.4f}"
         )
-        values_window5.append(float(s5.mean()))
-        values_window3.append(float(s3.mean()))
+        table_rows.append({
+            "Country": country,
+            "Mean +/-5d": float(s5.mean()),
+            "t-stat +/-5d": float(t5.statistic),
+            "p-value +/-5d": float(t5.pvalue),
+            "Mean +/-3d": float(s3.mean()),
+            "t-stat +/-3d": float(t3.statistic),
+            "p-value +/-3d": float(t3.pvalue),
+        })
     lines.append("")
 
     write_text("h2_event_study_results.txt", "\n".join(lines) + "\n")
-
-    x = np.arange(len(COUNTRIES))
-    palette = ["#0F6CE0", "#0F6CE0"]
-
-    def _plot(values: list[float], window_label: str, color: str, filename: str, *, hatch: str = "") -> None:
-        fig, ax = make_subplots(figsize=(10, 6))
-
-        bars = ax.bar(
-            x,
-            values,
-            0.6,
-            color=color,
-            alpha=0.85,
-            edgecolor="white",
-            linewidth=1.0,
-            hatch=hatch,
-        )
-        ax.axhline(0, color="#666666", linewidth=1.2)
-        ax.set_xticks(x)
-        ax.set_xticklabels([c.upper() for c in COUNTRIES], fontweight="bold")
-        ax.set_ylabel(f"Mean abnormal yield (pp), {window_label}", fontweight="bold")
-        ax.margins(x=0.04, y=0.18)
-
-        ax.bar_label(bars, fmt="%.3f", padding=6, fontsize=11, color="white")
-
-        arr = np.asarray(values, dtype=float)
-        finite = arr[np.isfinite(arr)]
-        if finite.size == 0:
-            ymin, ymax = -0.1, 0.1
-        else:
-            ymin, ymax = float(finite.min()), float(finite.max())
-        span = max(0.1, ymax - ymin)
-        ax.set_ylim(ymin - span * 0.25, ymax + span * 0.35)
-
-        save_figure(fig, filename, dpi=300)
-
-    _plot(values_window5, "+/-5 days", palette[0], "h2_event_study_window5.png")
-    _plot(values_window3, "+/-3 days", palette[1], "h2_event_study_window3.png")
+    table_df = pd.DataFrame(table_rows)
+    latex = table_df.to_latex(
+        index=False,
+        escape=False,
+        column_format="lrrrrrr",
+        float_format=lambda x: f"{x:.4f}",
+    )
+    latex = latex.replace("\\toprule", "\\hline")
+    latex = latex.replace("\\midrule", "\\hline")
+    latex = latex.replace("\\bottomrule", "\\hline")
+    write_text("table_4_11_h2_event_study.tex", latex)
 
 
 if __name__ == "__main__":

@@ -16,48 +16,53 @@ OUTPUT_TABLES = ROOT.parent / "OUTPUTS" / "tables"
 
 # Execution order — each entry is (module_name, expected_outputs)
 PIPELINE = [
-    ("descriptive_tables", [
-        OUTPUT_TABLES / "data_coverage_table.tex",
-        OUTPUT_TABLES / "descriptive_statistics_table.tex",
-        OUTPUT_TABLES / "h1_descriptive_statistics.tex",
-        OUTPUT_TABLES / "h2_spread_statistics.tex",
-        OUTPUT_TABLES / "macro_summary_table.tex",
+    ("paper_tables", [
+        OUTPUT_TABLES / "table_3_1_macro_summary.tex",
+        OUTPUT_TABLES / "table_3_2_variable_definitions.tex",
+        OUTPUT_TABLES / "table_4_2_h1_descriptive.tex",
+        OUTPUT_TABLES / "table_4_8_h2_spread_descriptive.tex",
     ]),
     ("h1_ecb_rate_hike_impact", [
         OUTPUT_REPORTS / "h1_regression_results.txt",
         OUTPUT_REPORTS / "h1_placebo_results.txt",
-        OUTPUT_FIGURES / "h1_placebo_tests.png",
+        OUTPUT_TABLES / "table_4_1_h1_regression.tex",
+        OUTPUT_TABLES / "table_4_3_h1_placebo.tex",
+        OUTPUT_TABLES / "table_4_5_h1_robustness.tex",
     ]),
     ("h1_hac_vif_appendix", [
         OUTPUT_REPORTS / "h1_hac_results.txt",
     ]),
     ("h1_event_study", [
         OUTPUT_REPORTS / "h1_event_study_results.txt",
-        OUTPUT_FIGURES / "h1_event_study_window5.png",
-        OUTPUT_FIGURES / "h1_event_study_window3.png",
+        OUTPUT_TABLES / "table_4_4_h1_event_study.tex",
     ]),
     ("h1b_ecb_feb2023_impact", [
         OUTPUT_REPORTS / "h1b_regression_results.txt",
-        OUTPUT_FIGURES / "h1b_robustness_checks.png",
     ]),
     ("h2_euro_adoption_impact", [
         OUTPUT_REPORTS / "h2_regression_results.txt",
         OUTPUT_REPORTS / "h2_placebo_results.txt",
-        OUTPUT_FIGURES / "h2_placebo_tests.png",
-        OUTPUT_FIGURES / "h2_spread_convergence_did.png",
-        OUTPUT_FIGURES / "h2_spread_timeseries.png",
-        OUTPUT_FIGURES / "h2_robustness_checks.png",
+        OUTPUT_TABLES / "table_4_7_h2_primary.tex",
+        OUTPUT_TABLES / "table_4_9_h2_placebo.tex",
+        OUTPUT_TABLES / "table_4_10_h2_robustness.tex",
     ]),
     ("h2_hac_vif_appendix", [
         OUTPUT_REPORTS / "h2_hac_results.txt",
     ]),
     ("h2_event_study", [
         OUTPUT_REPORTS / "h2_event_study_results.txt",
-        OUTPUT_FIGURES / "h2_event_study_window5.png",
-        OUTPUT_FIGURES / "h2_event_study_window3.png",
+        OUTPUT_TABLES / "table_4_11_h2_event_study.tex",
     ]),
     ("f_test_comparison", [
         OUTPUT_REPORTS / "f_test_comparison_results.txt",
+    ]),
+    ("paper_figures", [
+        OUTPUT_FIGURES / "figure_3_1_all_countries_yields.png",
+        OUTPUT_FIGURES / "figure_3_3_spreads_vs_germany.png",
+        OUTPUT_FIGURES / "figure_3_4_croatia_euro_timeline.png",
+        OUTPUT_FIGURES / "figure_4_1_h1_did_visual.png",
+        OUTPUT_FIGURES / "figure_4_5_h1b_did_visual.png",
+        OUTPUT_FIGURES / "figure_4_7_h2_spread_convergence.png",
     ]),
 ]
 

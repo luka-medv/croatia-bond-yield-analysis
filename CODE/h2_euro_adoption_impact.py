@@ -11,11 +11,8 @@ Event: Croatia euro adoption on January 1, 2023
 """
 
 import pandas as pd
-import numpy as np
 import statsmodels.formula.api as smf
 from statsmodels.iolib.summary2 import summary_col
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 from pathlib import Path
 import warnings
 import sys
@@ -27,9 +24,8 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
-from io_utils import save_figure, write_with_writer
-from placebo_utils import compute_placebo_payload, save_placebo_plot, write_standalone_placebo_report
-from plot_utils import add_dual_outline, label_bars_with_significance
+from io_utils import write_text, write_with_writer
+from placebo_utils import compute_placebo_payload, write_standalone_placebo_report
 
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT.parent / 'DATA' / 'input_data.csv'
@@ -83,29 +79,12 @@ def write_h2_column_c_placebo_report(payload: dict, filename: str = 'h2_placebo_
     )
 
 
-def save_h2_column_c_placebo_plot(
-    payload: dict,
-    filename: str = 'h2_placebo_tests.png',
-    *,
-    actual_label: str = 'Actual Event\n(2023-01-01)\n0mo',
-    legend_actual: str = 'Actual Euro Adoption',
-) -> None:
-    save_placebo_plot(
-        payload,
-        filename,
-        actual_label=actual_label,
-        legend_actual=legend_actual,
-    )
-
-
 def run_h2_column_c_placebos(
     df_h2: pd.DataFrame,
     *,
     save_report: bool = True,
-    save_plot: bool = True,
     verbose: bool = False,
     report_filename: str = 'h2_placebo_results.txt',
-    plot_filename: str = 'h2_placebo_tests.png',
 ) -> dict:
     payload = compute_h2_column_c_placebos(df_h2)
 
@@ -123,10 +102,21 @@ def run_h2_column_c_placebos(
 
     if save_report:
         write_h2_column_c_placebo_report(payload, report_filename)
-    if save_plot:
-        save_h2_column_c_placebo_plot(payload, plot_filename)
 
     return payload
+
+
+def _write_simple_latex_table(df: pd.DataFrame, filename: str, column_format: str) -> None:
+    latex = df.to_latex(
+        index=False,
+        escape=False,
+        column_format=column_format,
+        float_format=lambda x: f"{x:.4f}",
+    )
+    latex = latex.replace("\\toprule", "\\hline")
+    latex = latex.replace("\\midrule", "\\hline")
+    latex = latex.replace("\\bottomrule", "\\hline")
+    write_text(filename, latex)
 
 
 def run():
@@ -167,38 +157,6 @@ def run():
 
     print("\nSpread vs Germany (percentage points):")
     print(spread_stats)
-
-    # Save as PNG table
-    fig, ax = plt.subplots(figsize=(20, 12))
-    ax.axis('tight')
-    ax.axis('off')
-
-    spread_df = spread_stats.reset_index()
-    spread_df['period'] = spread_df['period'].astype(str)
-    spread_df[['Mean', 'Std Dev', 'Min', 'Max']] = spread_df[['Mean', 'Std Dev', 'Min', 'Max']].map(lambda x: f"{x:.4f}")
-    spread_df['N'] = spread_df['N'].astype(int)
-
-    table = ax.table(cellText=spread_df.values,
-                    colLabels=spread_df.columns,
-                    cellLoc='center',
-                    loc='center',
-                    colWidths=[0.15, 0.15, 0.12, 0.12, 0.12, 0.12, 0.12])
-
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 2.5)
-
-    for i in range(len(spread_df.columns)):
-        table[(0, i)].set_facecolor('#5d6d7e')
-        table[(0, i)].set_text_props(weight='bold', color='white')
-
-    for i in range(1, len(spread_df) + 1):
-        if i % 2 == 0:
-            for j in range(len(spread_df.columns)):
-                table[(i, j)].set_facecolor('#f8f9f9')
-
-
-    save_figure(fig, 'h2_spread_statistics.png', facecolor='white', dpi=300)
 
     # Calculate spread reduction
     croatia_pre = df_h2[(df_h2['country'] == 'Croatia') &
@@ -303,7 +261,6 @@ def run():
     placebo_payload = run_h2_column_c_placebos(
         df_h2,
         save_report=True,
-        save_plot=True,
         verbose=True,
     )
     placebo_results = placebo_payload['results']
@@ -405,6 +362,49 @@ def run():
         }
     )
 
+    latex_yields = results_yields.as_latex()
+    latex_spreads = results_spreads.as_latex()
+    replacements = {
+        "croatia_ex_post": "Croatia x Post",
+        "post_euro_adoption": "Post Euro Adoption",
+        "is_croatia": "Croatia Indicator",
+        "gdp_growth_quarterly": "GDP Growth",
+        "inflation_hicp": "Inflation (HICP)",
+        "public_debt_gdp": "Public Debt",
+        "C(country)[T.Slovakia]": "Slovakia",
+        "C(country)[T.Slovenia]": "Slovenia",
+        "C(country)[T.Lithuania]": "Lithuania",
+    }
+    for old, new in replacements.items():
+        latex_yields = latex_yields.replace(old, new)
+        latex_spreads = latex_spreads.replace(old, new)
+    write_text(
+        "table_4_7_h2_primary.tex",
+        "% Panel A: Bond yield regressions\n" + latex_yields + "\n\n% Panel B: Spread regressions\n" + latex_spreads,
+    )
+
+    placebo_table = pd.DataFrame([
+        {
+            "Test": row["name"],
+            "Date": row["date"],
+            "Months Before": row["months_before"],
+            "Coefficient": row["coefficient"],
+            "Std. Error": row["se"],
+            "P-value": row["pvalue"],
+        }
+        for row in placebo_results
+    ])
+    _write_simple_latex_table(placebo_table, "table_4_9_h2_placebo.tex", "llrrrr")
+
+    robustness_table = pd.DataFrame([
+        {"Specification": "Main specification", "Coefficient": did_spreads, "P-value": did_spreads_pval},
+        {"Specification": "Exclude Slovenia", "Coefficient": robust_coef_1, "P-value": robust_pval_1},
+        {"Specification": "Exclude Slovakia", "Coefficient": robust_coef_2, "P-value": robust_pval_2},
+        {"Specification": "Exclude Lithuania", "Coefficient": robust_coef_3, "P-value": robust_pval_3},
+        {"Specification": "2022-2024 only", "Coefficient": robust_coef_4, "P-value": robust_pval_4},
+    ])
+    _write_simple_latex_table(robustness_table, "table_4_10_h2_robustness.tex", "lrr")
+
     def _write_results(handle):
         first_significant = next((r for r in placebo_results if r['pvalue'] < 0.05), None)
         handle.write("=" * 80 + "\n")
@@ -491,135 +491,17 @@ def run():
     write_with_writer('h2_regression_results.txt', _write_results)
 
     # ============================================================
-    # VISUALIZATION 1: Main DiD Plot (Spreads)
-    # ============================================================
-    print("\n[11/14] Creating main DiD visualization...")
-    avg_spreads = df_h2.groupby(['is_croatia', 'period'])['spread_vs_germany'].mean().reset_index()
-
-    fig, ax = plt.subplots(figsize=(20, 12))
-
-    periods = ['Pre-Euro', 'Post-Euro']
-
-    croatia_data = avg_spreads[avg_spreads['is_croatia'] == 1]
-    croatia_spreads = [
-        croatia_data[croatia_data['period'] == periods[0]]['spread_vs_germany'].values[0],
-        croatia_data[croatia_data['period'] == periods[1]]['spread_vs_germany'].values[0]
-    ]
-    ax.plot([0, 1], croatia_spreads, marker='o', markersize=12, linewidth=3,
-            label='Croatia (Treatment)', color='#e74c3c')
-
-    control_data = avg_spreads[avg_spreads['is_croatia'] == 0]
-    control_spreads = [
-        control_data[control_data['period'] == periods[0]]['spread_vs_germany'].values[0],
-        control_data[control_data['period'] == periods[1]]['spread_vs_germany'].values[0]
-    ]
-    ax.plot([0, 1], control_spreads, marker='s', markersize=12, linewidth=3,
-            label='Control Group (SI, SK, LT)', color='#3498db')
-
-    counterfactual = croatia_spreads[0] + (control_spreads[1] - control_spreads[0])
-    ax.plot([0, 1], [croatia_spreads[0], counterfactual], linestyle='--', linewidth=2.5,
-            color='#95a5a6', label='Croatia Counterfactual')
-
-    ax.annotate('', xy=(1, croatia_spreads[1]), xytext=(1, counterfactual),
-                arrowprops=dict(arrowstyle='<->', color='green' if did_spreads < 0 else 'red', lw=3))
-    ax.text(1.05, (croatia_spreads[1] + counterfactual) / 2,
-            f'DiD Effect:\n{did_spreads:.4f}pp\n(Convergence)' if did_spreads < 0 else f'DiD Effect:\n{did_spreads:.4f}pp',
-            fontsize=11, color='green' if did_spreads < 0 else 'red',
-            bbox=dict(boxstyle='round', facecolor='white',
-                     edgecolor='green' if did_spreads < 0 else 'red', linewidth=2))
-
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(['Pre-Euro\n(Before Jan 1, 2023)',
-                        'Post-Euro\n(After Jan 1, 2023)'], fontsize=11)
-    ax.set_ylabel('Spread vs Germany (percentage points)', fontsize=12, fontweight='bold')
-    ax.legend(loc='best', fontsize=11, framealpha=0.95)
-    ax.grid(True, alpha=0.3)
-    ax.axhline(0, color='black', linestyle='-', linewidth=0.8, alpha=0.5)
-
-    plt.tight_layout()
-    save_figure(fig, 'h2_spread_convergence_did.png', dpi=300)
-
-    # ============================================================
-    # VISUALIZATION 2: Time Series of Spreads
-    # ============================================================
-    print("\n[12/14] Creating spread timeseries visualization...")
-    fig, ax = plt.subplots(figsize=(20, 12))
-
-    for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania']:
-        country_data = df_h2[df_h2['country'] == country].sort_values('date')
-        linewidth = 3 if country == 'Croatia' else 1.5
-        ax.plot(country_data['date'], country_data['spread_vs_germany'],
-                label=country, linewidth=linewidth, alpha=0.9)
-
-    ax.axvline(pd.to_datetime('2023-01-01'), color='green', linestyle='--',
-              linewidth=2.5, alpha=0.7, label='Croatia Euro Adoption')
-    ax.axhline(0, color='black', linestyle='-', linewidth=1, alpha=0.5)
-
-    ax.set_xlabel('Date', fontsize=12, fontweight='bold')
-    ax.set_ylabel('Spread vs Germany (percentage points)', fontsize=12, fontweight='bold')
-    ax.legend(loc='best', fontsize=11, framealpha=0.95)
-    ax.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    save_figure(fig, 'h2_spread_timeseries.png', dpi=300)
-
-    # ============================================================
-    # VISUALIZATION 3: Robustness Check Comparison
-    # ============================================================
-    print("\n[13/14] Creating robustness checks visualization...")
-    fig, ax = plt.subplots(figsize=(12, 7))
-
-    robustness_results = pd.DataFrame({
-        'Specification': ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania', 'Short Window\n(2022-2024)'],
-        'DiD_Coefficient': [did_spreads, robust_coef_1, robust_coef_2, robust_coef_3, robust_coef_4],
-        'P_Value': [did_spreads_pval, robust_pval_1, robust_pval_2, robust_pval_3, robust_pval_4]
-    })
-
-    bars = ax.bar(
-        range(len(robustness_results)),
-        robustness_results['DiD_Coefficient'],
-        color='#0F6CE0',
-        edgecolor='#0F6CE0',
-        alpha=0.9,
-        width=0.7,
-    )
-
-    for idx, (_, row) in enumerate(robustness_results.iterrows()):
-        if row['P_Value'] is not None and row['P_Value'] < 0.05:
-            add_dual_outline(ax, bars[idx])
-
-    ax.axhline(0, color='black', linestyle='-', linewidth=1.5)
-    ax.grid(True, alpha=0.3, axis='y', linestyle=':', linewidth=0.8)
-    ax.set_ylabel('DiD Coefficient (percentage points)', fontsize=13, fontweight='bold')
-    ax.set_xlabel('Specification', fontsize=13, fontweight='bold')
-    ax.set_xticks(range(len(robustness_results)))
-    ax.set_xticklabels(robustness_results['Specification'], fontsize=11)
-
-    label_bars_with_significance(ax, bars, pvalues=robustness_results['P_Value'].tolist())
-
-    legend_elements = [
-        Patch(facecolor='#0F6CE0', edgecolor='#0F6CE0', alpha=0.9, label='Spec (p >= 0.05)'),
-        Patch(facecolor='#0F6CE0', edgecolor='#d62728', linewidth=2, alpha=0.9, label='Spec (p < 0.05)'),
-    ]
-    ax.legend(handles=legend_elements, loc='best', fontsize=11, framealpha=0.95)
-
-    plt.tight_layout()
-    save_figure(fig, 'h2_robustness_checks.png', dpi=300)
-
-    # ============================================================
     # SUMMARY
     # ============================================================
     print("\n" + "=" * 80)
     print("HYPOTHESIS 2 TESTING COMPLETE")
     print("=" * 80)
     print("\nOutput files created:")
-    print("  1. output/h2_spread_statistics.png")
-    print("  2. output/h2_regression_results.txt")
-    print("  3. output/h2_spread_convergence_did.png")
-    print("  4. output/h2_spread_timeseries.png")
-    print("  5. output/h2_robustness_checks.png")
-    print("  6. output/h2_placebo_results.txt")
-    print("  7. output/h2_placebo_tests.png")
+    print("  1. output/h2_regression_results.txt")
+    print("  2. output/h2_placebo_results.txt")
+    print("  3. output/tables/table_4_7_h2_primary.tex")
+    print("  4. output/tables/table_4_9_h2_placebo.tex")
+    print("  5. output/tables/table_4_10_h2_robustness.tex")
     print("\nKey Findings:")
     print(f"  Spread Reduction: {spread_reduction:.4f} pp")
     print(f"  Main DiD Coefficient (Spreads): {did_spreads:.4f} ({significance_label})")
