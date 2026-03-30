@@ -1,4 +1,10 @@
+"""
+F-test comparison: HC3 vs HAC vs OLS for macro control joint significance.
 
+The document (para 107) says "under HC3 inference (F = 110.570)" but F=110.570
+actually comes from the HAC model. This script computes F-tests under all three
+covariance estimators for H1, H1b, and H2 to provide a clear reference.
+"""
 
 from __future__ import annotations
 
@@ -33,7 +39,9 @@ def run() -> None:
     controls = ["gdp_growth_quarterly", "inflation_hicp", "public_debt_gdp"]
     lines = []
 
-    
+    # ================================================================
+    # H1: ECB rate hike — 27 July 2022
+    # ================================================================
     countries_h1 = ["Croatia", "Slovenia", "Slovakia", "Lithuania"]
     dfh1 = df[
         (df["country"].isin(countries_h1))
@@ -43,8 +51,8 @@ def run() -> None:
     dfh1.rename(columns={"croatia_x_post_july2022": "croatia_ex_post"}, inplace=True)
 
     formula_h1 = (
-        
-        
+        "bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + "
+        "gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
     )
 
     m_hc3 = smf.ols(formula_h1, data=dfh1).fit(cov_type="HC3")
@@ -65,7 +73,9 @@ def run() -> None:
     print(f"H1  HAC: F={f_test_controls(m_hac, controls)[0]:.3f}")
     print(f"H1  OLS: F={f_test_controls(m_ols, controls)[0]:.3f}")
 
-    
+    # ================================================================
+    # H1b: ECB rate hike — 2 February 2023
+    # ================================================================
     countries_h1b = ["Croatia", "Slovenia", "Slovakia", "Lithuania", "France", "Germany"]
     dfh1b = df[
         (df["country"].isin(countries_h1b))
@@ -75,8 +85,8 @@ def run() -> None:
     dfh1b.rename(columns={"croatia_x_post_feb2023": "croatia_ex_post"}, inplace=True)
 
     formula_h1b = (
-        
-        
+        "bond_yield_10y ~ C(country) + post_feb_2023_hike + croatia_ex_post + "
+        "gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
     )
 
     m_hc3b = smf.ols(formula_h1b, data=dfh1b).fit(cov_type="HC3")
@@ -92,7 +102,9 @@ def run() -> None:
     print(f"H1b HC3: F={f_test_controls(m_hc3b, controls)[0]:.3f}")
     print(f"H1b HAC: F={f_test_controls(m_hacb, controls)[0]:.3f}")
 
-    
+    # ================================================================
+    # H2: Euro adoption — 1 January 2023 (spread model)
+    # ================================================================
     countries_h2 = ["Croatia", "Slovenia", "Slovakia", "Lithuania"]
     dfh2 = df[
         (df["country"].isin(countries_h2))
@@ -102,8 +114,8 @@ def run() -> None:
     dfh2.rename(columns={"croatia_x_post_euro": "croatia_ex_post"}, inplace=True)
 
     formula_h2 = (
-        
-        
+        "spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + "
+        "gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
     )
 
     m_hc3h2 = smf.ols(formula_h2, data=dfh2).fit(cov_type="HC3")
@@ -119,7 +131,9 @@ def run() -> None:
     print(f"H2  HC3: F={f_test_controls(m_hc3h2, controls)[0]:.3f}")
     print(f"H2  HAC: F={f_test_controls(m_hach2, controls)[0]:.3f}")
 
-    
+    # ================================================================
+    # Summary note
+    # ================================================================
     lines.append("")
     lines.append("-" * 70)
     lines.append("NOTE: Document para [107] says 'under HC3 inference (F = 110.570)'")

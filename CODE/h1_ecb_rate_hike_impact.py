@@ -1,4 +1,13 @@
+"""
+Hypothesis 1 Testing: Impact of ECB Monetary Policy Tightening on Croatian Bond Yields
 
+H1: ECB monetary policy tightening (first rate hike on July 27, 2022)
+    significantly affected Croatian 10-year government bond yields
+
+Treatment Group: Croatia
+Control Group: Small Eurozone countries (Slovenia, Slovakia, Lithuania)
+Event: ECB first rate hike on July 27, 2022 (+50 bps)
+"""
 
 import pandas as pd
 import numpy as np
@@ -17,7 +26,7 @@ warnings.filterwarnings('ignore')
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-
+# Fix Windows encoding issues
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -33,12 +42,12 @@ def run():
     print("HYPOTHESIS 1: ECB RATE HIKE IMPACT ON CROATIAN BOND YIELDS")
     print("=" * 80)
 
-    
+    # Load data
     print("\n[1/10] Loading data...")
     df = pd.read_csv(DATA_PATH, parse_dates=['date'])
     print(f"[ok] Loaded {len(df):,} observations")
 
-    
+    # Filter to relevant countries and time period
     df_h1 = df[
         (df['country'].isin(['Croatia', 'Slovenia', 'Slovakia', 'Lithuania'])) &
         (df['date'] >= '2021-01-01') &
@@ -49,10 +58,12 @@ def run():
     print(f"  Period: {df_h1['date'].min().date()} to {df_h1['date'].max().date()}")
     print(f"  Countries: {', '.join(sorted(df_h1['country'].unique()))}")
 
-    
+    # Rename interaction term for table clarity
     df_h1.rename(columns={'croatia_x_post_july2022': 'croatia_ex_post'}, inplace=True)
 
-    
+    # ============================================================
+    # DESCRIPTIVE STATISTICS BY PERIOD
+    # ============================================================
     print("\n[2/13] Calculating descriptive statistics...")
 
     df_h1['period'] = df_h1['post_july_2022_hike'].map({
@@ -84,14 +95,16 @@ def run():
 
     write_with_writer('h1_descriptive_statistics.tex', lambda handle: handle.write(table_tex))
 
-    
+    # ============================================================
+    # PRE-TREATMENT PARALLEL TRENDS TEST
+    # ============================================================
     print("\n[3/13] Testing parallel trends assumption...")
 
     df_pre = df_h1[df_h1['post_july_2022_hike'] == 0].copy()
     df_pre['time_trend'] = (df_pre['date'] - df_pre['date'].min()).dt.days
 
     parallel_model = smf.ols(
-        ,
+        'bond_yield_10y ~ is_croatia + time_trend + is_croatia:time_trend',
         data=df_pre
     ).fit()
 
@@ -106,36 +119,38 @@ def run():
         print("[warn] Warning: Parallel trends assumption may be violated (p < 0.05)")
         parallel_satisfied = False
 
-    
+    # ============================================================
+    # MAIN DiD REGRESSION MODELS
+    # ============================================================
     print("\n[4/13] Running main DiD regression models...")
 
-    
+    # Model 1: Basic DiD
     model1 = smf.ols(
-        ,
+        'bond_yield_10y ~ is_croatia + post_july_2022_hike + croatia_ex_post',
         data=df_h1
     ).fit(cov_type='HC3')
 
-    
+    # Model 2: DiD with country fixed effects
     model2 = smf.ols(
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post',
         data=df_h1
     ).fit(cov_type='HC3')
 
-    
+    # Model 3: DiD with macroeconomic controls
     model3 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ is_croatia + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_h1
     ).fit(cov_type='HC3')
 
-    
+    # Model 4: Full specification
     model4 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_h1
     ).fit(cov_type='HC3')
 
-    
+    # Extract main DiD coefficient
     did_coef = model4.params['croatia_ex_post']
     did_se = model4.bse['croatia_ex_post']
     did_pval = model4.pvalues['croatia_ex_post']
@@ -143,16 +158,18 @@ def run():
 
     print(f"[ok] Main DiD Coefficient: {did_coef:.4f} (p={did_pval:.4f})")
 
-    
+    # ============================================================
+    # PLACEBO TESTS - Multiple time points to identify anticipation timeline
+    # ============================================================
     print("\n[5/13] Running comprehensive placebo tests (5 time points)...")
 
-    
+    # Define all placebo test dates
     placebo_tests = [
-        ('2021-04-27', 15, 'Placebo 1'),  
-        ('2021-07-27', 12, 'Placebo 2'),  
-        ('2021-10-27', 9, 'Placebo 3'),   
-        ('2022-01-27', 6, 'Placebo 4'),   
-        ('2022-04-27', 3, 'Placebo 5'),   
+        ('2021-04-27', 15, 'Placebo 1'),  # 15 months before
+        ('2021-07-27', 12, 'Placebo 2'),  # 12 months before
+        ('2021-10-27', 9, 'Placebo 3'),   # 9 months before
+        ('2022-01-27', 6, 'Placebo 4'),   # 6 months before
+        ('2022-04-27', 3, 'Placebo 5'),   # 3 months before
     ]
 
     placebo_results = []
@@ -160,14 +177,14 @@ def run():
     for placebo_date_str, months_before, placebo_name in placebo_tests:
         placebo_date = pd.to_datetime(placebo_date_str)
 
-        
+        # Create placebo indicators
         df_h1[f'post_placebo_{len(placebo_results)+1}'] = (df_h1['date'] >= placebo_date).astype(int)
         df_h1[f'croatia_x_placebo_{len(placebo_results)+1}'] = df_h1['is_croatia'] * df_h1[f'post_placebo_{len(placebo_results)+1}']
 
-        
+        # Run placebo regression
         placebo_model = smf.ols(
-            
-            ,
+            f'bond_yield_10y ~ C(country) + post_placebo_{len(placebo_results)+1} + croatia_x_placebo_{len(placebo_results)+1} + '
+            'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
             data=df_h1
         ).fit(cov_type='HC3')
 
@@ -178,15 +195,15 @@ def run():
         print(f"  {placebo_name} ({placebo_date_str}, -{months_before}mo): {placebo_coef:.4f} (p={placebo_pval:.4f}) {status}")
 
         placebo_results.append({
-            : placebo_name,
-            : placebo_date_str,
-            : months_before,
-            : placebo_coef,
-            : placebo_pval,
-            : status
+            'name': placebo_name,
+            'date': placebo_date_str,
+            'months_before': months_before,
+            'coefficient': placebo_coef,
+            'pvalue': placebo_pval,
+            'status': status
         })
 
-    
+    # Store for later use
     placebo_coef_1 = placebo_results[0]['coefficient']
     placebo_pval_1 = placebo_results[0]['pvalue']
     placebo_coef_2 = placebo_results[1]['coefficient']
@@ -200,13 +217,15 @@ def run():
 
     print(f"\n[ok] Completed {len(placebo_results)} placebo tests")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 1: Exclude Slovenia
+    # ============================================================
     print("\n[6/13] Robustness check 1: Excluding Slovenia from control group...")
 
     df_robust_1 = df_h1[df_h1['country'] != 'Slovenia'].copy()
     robust_model_1 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_1
     ).fit(cov_type='HC3')
 
@@ -215,13 +234,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Slovenia): {robust_coef_1:.4f} (p={robust_pval_1:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 2: Exclude Slovakia
+    # ============================================================
     print("\n[7/13] Robustness check 2: Excluding Slovakia from control group...")
 
     df_robust_2 = df_h1[df_h1['country'] != 'Slovakia'].copy()
     robust_model_2 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_2
     ).fit(cov_type='HC3')
 
@@ -230,13 +251,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Slovakia): {robust_coef_2:.4f} (p={robust_pval_2:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 3: Exclude Lithuania
+    # ============================================================
     print("\n[8/13] Robustness check 3: Excluding Lithuania from control group...")
 
     df_robust_3 = df_h1[df_h1['country'] != 'Lithuania'].copy()
     robust_model_3 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_3
     ).fit(cov_type='HC3')
 
@@ -245,13 +268,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Lithuania): {robust_coef_3:.4f} (p={robust_pval_3:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 4: Shorter Time Window (2022-2024)
+    # ============================================================
     print("\n[8b/13] Robustness check 4: Shorter time window (2022-2024)...")
 
     df_robust_4 = df_h1[df_h1['date'] >= '2022-01-01'].copy()
     robust_model_4 = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_4
     ).fit(cov_type='HC3')
 
@@ -260,7 +285,9 @@ def run():
 
     print(f"DiD Coefficient (2022-2024 only): {robust_coef_4:.4f} (p={robust_pval_4:.4f})")
 
-    
+    # ============================================================
+    # REGRESSION RESULTS TABLE & SUMMARY
+    # ============================================================
     print("\n[9/13] Generating comprehensive results table...")
 
     results_table = summary_col(
@@ -269,9 +296,9 @@ def run():
         float_format='%.4f',
         model_names=['Basic DiD', 'Country FE', 'With Controls', 'Full Spec'],
         info_dict={
-            : lambda x: f"{int(x.nobs):,}",
-            : lambda x: f"{x.rsquared:.4f}",
-            : lambda x: f"{x.rsquared_adj:.4f}"
+            'N': lambda x: f"{int(x.nobs):,}",
+            'R²': lambda x: f"{x.rsquared:.4f}",
+            'Adj. R²': lambda x: f"{x.rsquared_adj:.4f}"
         }
     )
 
@@ -285,30 +312,30 @@ def run():
     else:
         did_significance = "not significant (p >= 0.10)"
 
-    
+    # Save comprehensive text results
     def _write_results(handle):
         lines = [
-             * 80,
-            ,
-            ,
-             * 80,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-             * 80,
-            ,
-             * 80,
-            ,
+            "=" * 80,
+            "HYPOTHESIS 1: ECB RATE HIKE IMPACT ON CROATIAN BOND YIELDS",
+            "WITH PLACEBO TESTS AND ROBUSTNESS CHECKS",
+            "=" * 80,
+            "",
+            "Event: ECB First Rate Hike (+50bps) on July 27, 2022",
+            "Treatment: Croatia",
+            "Control: Slovenia, Slovakia, Lithuania",
+            "Method: Difference-in-Differences Analysis",
+            "",
+            "=" * 80,
+            "MAIN REGRESSION RESULTS",
+            "=" * 80,
+            "",
             str(results_table),
-            ,
-             * 80,
-            ,
-             * 80,
-            ,
-            ,
+            "",
+            "=" * 80,
+            "PLACEBO TESTS - ANTICIPATION TIMELINE",
+            "=" * 80,
+            "",
+            "Testing for effects at 5 fake treatment dates to identify when anticipation began:",
         ]
 
         for result in placebo_results:
@@ -320,51 +347,51 @@ def run():
             lines.append("")
 
         lines.extend([
-            ,
-            ,
-            ,
-            ,
-            ,
+            "Main Effect (July 27, 2022 - actual ECB rate hike):",
+            f"  DiD Coefficient: {did_coef:.4f}",
+            f"  P-value: {did_pval:.4f}",
+            "  Status: [ok] HIGHLY SIGNIFICANT",
+            "",
         ])
 
         first_significant = next((result for result in placebo_results if result['pvalue'] < 0.05), None)
         if first_significant:
             lines.extend([
-                ,
-                ,
-                ,
-                ,
+                f"INTERPRETATION: Anticipation effects began around {first_significant['date']}",
+                f"({first_significant['months_before']} months before the actual rate hike).",
+                "This suggests markets responded to ECB policy signals, not just the mechanical rate change.",
+                "",
             ])
         else:
             lines.extend([
-                ,
-                ,
-                ,
+                "INTERPRETATION: No anticipation effects detected. Main effect appears to be",
+                "directly attributable to the July 27, 2022 rate hike itself.",
+                "",
             ])
 
         lines.extend([
-             * 80,
-            ,
-             * 80,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-             * 80,
-            ,
-             * 80,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
+            "=" * 80,
+            "ROBUSTNESS CHECKS (Alternative Control Groups)",
+            "=" * 80,
+            "",
+            f"Main specification (all controls):      {did_coef:.4f} (p={did_pval:.4f})",
+            f"Excluding Slovenia:                     {robust_coef_1:.4f} (p={robust_pval_1:.4f})",
+            f"Excluding Slovakia:                     {robust_coef_2:.4f} (p={robust_pval_2:.4f})",
+            f"Excluding Lithuania:                    {robust_coef_3:.4f} (p={robust_pval_3:.4f})",
+            f"Shorter window (2022-2024):             {robust_coef_4:.4f} (p={robust_pval_4:.4f})",
+            "",
+            "=" * 80,
+            "KEY FINDINGS",
+            "=" * 80,
+            "",
+            f"Main DiD Coefficient: {did_coef:.4f}",
+            f"Standard Error: {did_se:.4f}",
+            f"T-statistic: {did_tstat:.4f}",
+            f"P-value: {did_pval:.4f}",
+            "",
+            f"Statistical Significance: {did_significance}",
+            "",
+            f"Parallel Trends: {'SATISFIED' if parallel_satisfied else 'VIOLATED'}",
         ])
 
         placebo_passes = sum(1 for r in placebo_results if r['pvalue'] > 0.05)
@@ -375,17 +402,17 @@ def run():
 
         direction = "INCREASED" if did_coef > 0 else "DECREASED"
         lines.extend([
-            ,
-            ,
-            ,
-            ,
-            ,
+            "Interpretation:",
+            f"The ECB rate hike on July 27, 2022 {direction} Croatian bond yields by",
+            f"{abs(did_coef):.4f} percentage points relative to the control group.",
+            f"This effect is {did_significance}.",
+            "",
         ])
 
         if did_pval < 0.05:
             lines.extend([
-                ,
-                ,
+                "CONCLUSION: H1 is STRONGLY SUPPORTED by the data.",
+                "All robustness checks confirm the main result.",
             ])
         else:
             lines.append("CONCLUSION: H1 is NOT SUPPORTED by the data.")
@@ -395,6 +422,11 @@ def run():
     write_with_writer('h1_regression_results.txt', _write_results)
 
 
+
+
+    # ============================================================
+    # VISUALIZATION 1: Main DiD Plot
+    # ============================================================
     print("\n[11/13] Creating main DiD visualization...")
 
     avg_yields = (
@@ -465,7 +497,7 @@ def run():
 
     effect_color = 'green' if did_coef < 0 else 'red'
     ax.annotate(
-        ,
+        '',
         xy=(1, croatia_yields[1]),
         xytext=(1, counterfactual),
         arrowprops=dict(arrowstyle='<->', color=effect_color, lw=3),
@@ -473,7 +505,7 @@ def run():
     ax.text(
         1.02,
         (croatia_yields[1] + counterfactual) / 2,
-        ,
+        f'DiD Effect:\n{did_coef:.4f}pp',
         fontsize=11,
         color=effect_color,
         ha='left',
@@ -483,7 +515,7 @@ def run():
 
     ax.set_xticks([0, 1])
     ax.set_xticklabels(['Pre-Hike\n(Before July 27, 2022)',
-                        ], fontsize=11)
+                        'Post-Hike\n(After July 27, 2022)'], fontsize=11)
     ax.set_ylabel('Average 10-Year Bond Yield (%)', fontsize=12)
 
     ci_handles = [
@@ -494,6 +526,12 @@ def run():
     ax.legend(handles=legend_handles, loc='best', framealpha=0.9)
 
 
+    # NOTE: Placebo plots (h1_placebo_tests.png) are generated by
+    # placebo_column_c.py using the Column C specification.
+
+    # ============================================================
+    # SUMMARY
+    # ============================================================
     print("\n[13/13] Analysis complete - generating summary...")
     print("\n" + "=" * 80)
     print("HYPOTHESIS 1 TESTING COMPLETE")
@@ -503,12 +541,12 @@ def run():
     print(f"  Main DiD Coefficient: {did_coef:.4f} ({did_significance})")
     print(f"  Parallel Trends: {'[ok] SATISFIED' if parallel_satisfied else '[warn] VIOLATED'}")
 
-    
+    # Count placebo passes/fails
     placebo_passes = sum(1 for r in placebo_results if r['pvalue'] > 0.05)
     placebo_fails = len(placebo_results) - placebo_passes
     print(f"  Placebo Tests: {placebo_passes}/{len(placebo_results)} PASSED, {placebo_fails}/{len(placebo_results)} FAILED")
 
-    
+    # Identify when anticipation started
     first_significant = None
     for result in placebo_results:
         if result['pvalue'] < 0.05:

@@ -1,4 +1,7 @@
-
+"""
+H2 Appendix: HAC (Newey-West) standard errors, VIF, and F-test
+- Re-run H2 primary spread specification with HAC and report diagnostics.
+"""
 
 import sys
 from pathlib import Path
@@ -29,8 +32,8 @@ def run():
     dfh.rename(columns={'croatia_x_post_euro': 'croatia_ex_post'}, inplace=True)
 
     formula = (
-        
-        
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp'
     )
     model_hac = smf.ols(formula, data=dfh).fit(cov_type='HAC', cov_kwds={'maxlags': 5})
 
@@ -46,16 +49,16 @@ def run():
     vif = build_vif_table(dfh, ['gdp_growth_quarterly', 'inflation_hicp', 'public_debt_gdp'])
 
     lines = [
-         * 80,
-        ,
-         * 80,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
+        '=' * 80,
+        'H2 Appendix: HAC (Newey-West) SE, VIF and F-test',
+        '=' * 80,
+        '',
+        'HAC (maxlags=5) - Primary spread DiD coef (with controls)',
+        f"  {coef}: coef={did[0]:.4f}, SE={did[1]:.4f}, p={did[2]:.4f}",
+        '',
+        f'Controls joint significance: {fstr}',
+        '',
+        'VIF (controls):',
     ]
     for _, row in vif.iterrows():
         try:

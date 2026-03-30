@@ -1,4 +1,11 @@
+"""
+H2 Event Study: immediate yield reactions around Croatia's euro adoption.
 
+- Event: 2023-01-01 (official euro introduction).
+- Windows: +/-5 days and +/-3 days.
+- Method: abnormal yield = yield - 30d pre-event average; one-sample t-test vs 0.
+- Countries: Croatia, Slovenia, Slovakia, Lithuania, France, Germany.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +25,7 @@ from plot_utils import make_subplots, place_legend
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:  
+    except Exception:  # pragma: no cover - defensive
         pass
 
 COUNTRIES = ["Croatia", "Slovenia", "Slovakia", "Lithuania", "France", "Germany"]
@@ -29,7 +36,7 @@ EVENT_LABEL = "Euro Adoption 2023-01-01"
 def abnormal_series(
     df: pd.DataFrame, country: str, event_date: pd.Timestamp
 ) -> Tuple[pd.Series, pd.Series] | None:
-    
+    """Return abnormal yield windows (+/-5d and +/-3d) or None when data missing."""
 
     c = df[df["country"] == country].sort_values("date").set_index("date")
     if c.empty:
@@ -69,13 +76,13 @@ def run() -> None:
     
 
     lines = [
-         * 80,
-        ,
-         * 80,
-        ,
-        ,
-        ,
-        ,
+        "=" * 80,
+        "H2 EVENT STUDY: +/-5d and +/-3d around euro adoption (abnormal yields)",
+        "=" * 80,
+        "",
+        "Abnormal yield = yield - mean(yield over t-30..t-1). One-sample t-test vs 0.",
+        "Countries: HR, SI, SK, LT, FR, DE.",
+        "",
     ]
 
     values_window5: list[float] = []
@@ -94,8 +101,9 @@ def run() -> None:
         t5 = stats.ttest_1samp(s5.values, 0.0, nan_policy="omit")
         t3 = stats.ttest_1samp(s3.values, 0.0, nan_policy="omit")
         lines.append(
-            
-            
+            f"  {country}: +/-5d mean={s5.mean():.4f}, t={t5.statistic:.2f}, "
+            f"p={t5.pvalue:.4f}; +/-3d mean={s3.mean():.4f}, "
+            f"t={t3.statistic:.2f}, p={t3.pvalue:.4f}"
         )
         values_window5.append(float(s5.mean()))
         values_window3.append(float(s3.mean()))

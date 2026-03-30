@@ -1,4 +1,9 @@
+"""
+Single entry point: run every analysis script in order and verify outputs.
 
+Usage:
+    python analysis/run_all.py
+"""
 
 import sys
 import time
@@ -8,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 OUTPUT_REPORTS = ROOT.parent / "OUTPUTS" / "reports"
 OUTPUT_FIGURES = ROOT.parent / "OUTPUTS" / "figures"
 
-
+# Execution order — each entry is (module_name, expected_outputs)
 PIPELINE = [
     ("h1_ecb_rate_hike_impact", [
         OUTPUT_REPORTS / "h1_regression_results.txt",
@@ -52,7 +57,7 @@ PIPELINE = [
 
 
 def main() -> None:
-    
+    # Ensure the analysis package is importable
     sys.path.insert(0, str(ROOT.parent))
     sys.path.insert(0, str(ROOT))
 
@@ -72,7 +77,7 @@ def main() -> None:
             failed += 1
             continue
 
-        
+        # Verify outputs
         missing = [f for f in expected_files if not f.exists()]
         if missing:
             for f in missing:

@@ -24,7 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 FIGURES_DIR = PROJECT_ROOT / 'OUTPUTS' / 'figures'
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
-
+# Load data
 print("\n[1/7] Loading data...")
 DATA_DIR = PROJECT_ROOT / 'DATA'
 df = pd.read_csv(DATA_DIR / 'input_data.csv', parse_dates=['date'])
@@ -46,7 +46,7 @@ def _render_event_labels(
     anchor_frac: float = 0.88,
     max_frac: float = 1.25,
 ):
-    
+    """Render vertical event markers with staggered, non-overlapping labels."""
     if not events:
         return
 
@@ -62,15 +62,15 @@ def _render_event_labels(
     ]
     sorted_events.sort(key=lambda item: item[0])
 
-    
+    # Compute horizontal nudges to separate close labels
     nudge_days = {}
     for i, (ts, label, color) in enumerate(sorted_events):
         nudge_days[i] = 0
         for j in range(i):
             ts_j = sorted_events[j][0]
             if abs((ts - ts_j).days) < threshold_days:
-                nudge_days[j] = -60  
-                nudge_days[i] = 60   
+                nudge_days[j] = -60  # push earlier label left
+                nudge_days[i] = 60   # push later label right
 
     for i, (ts, label, color) in enumerate(sorted_events):
         ax.axvline(ts, linestyle='--', linewidth=2.3, alpha=0.75, color=color, zorder=1.5)
@@ -102,6 +102,10 @@ def annotate_vertical_events(ax, events=KEY_EVENT_LINES):
     _render_event_labels(ax, events)
 
 
+
+# ============================================================
+# PLOT 1: All Countries Yields
+# ============================================================
 print("\n[2/7] Creating all countries yields plot...")
 
 fig, ax = make_subplots()
@@ -113,7 +117,7 @@ for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania', 'France', 'Germa
     ax.plot(data['date'], data['bond_yield_10y'],
             label=country, linewidth=linewidth, alpha=alpha)
 
-
+# Key events
 annotate_vertical_events(ax)
 
 ax.set_xlabel('Date', fontsize=13, fontweight='bold')
@@ -127,7 +131,9 @@ fig.savefig(FIGURES_DIR / '01_all_countries_yields.png', dpi=300, facecolor='whi
 print("[saved] ../plots/01_all_countries_yields.png")
 plt.close(fig)
 
-
+# ============================================================
+# PLOT 2: Croatia vs Small Eurozone
+# ============================================================
 print("\n[3/7] Creating Croatia vs small eurozone comparison...")
 
 fig, ax = make_subplots()
@@ -139,11 +145,11 @@ for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania']:
     ax.plot(data['date'], data['bond_yield_10y'],
             label=country, linewidth=linewidth, alpha=alpha)
 
-
+# Shade post-euro adoption period
 euro_date = pd.to_datetime('2023-01-01')
 ax.axvspan(euro_date, df['date'].max(), alpha=0.1, zorder=0)
 
-
+# Key events
 annotate_vertical_events(ax)
 
 ax.set_xlabel('Date', fontsize=13, fontweight='bold')
@@ -157,7 +163,9 @@ fig.savefig(FIGURES_DIR / '02_croatia_vs_small_eurozone.png', dpi=300, facecolor
 print("[saved] ../plots/02_croatia_vs_small_eurozone.png")
 plt.close(fig)
 
-
+# ============================================================
+# PLOT 3: Spreads vs Germany
+# ============================================================
 print("\n[4/7] Creating spreads vs Germany plot...")
 
 fig, ax = make_subplots()
@@ -169,14 +177,14 @@ for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania', 'France']:
     ax.plot(data['date'], data['spread_vs_germany'],
             label=country, linewidth=linewidth, alpha=alpha)
 
-
+# Shade post-euro adoption period
 euro_date = pd.to_datetime('2023-01-01')
 ax.axvspan(euro_date, df['date'].max(), alpha=0.1, zorder=0)
 
-
+# Reference line
 ax.axhline(0, linestyle='-', linewidth=1.5, alpha=0.5)
 
-
+# Key events
 annotate_vertical_events(ax)
 
 ax.set_xlabel('Date', fontsize=13, fontweight='bold')
@@ -190,10 +198,12 @@ fig.savefig(FIGURES_DIR / '03_spreads_vs_germany.png', dpi=300, facecolor='white
 print("[saved] ../plots/03_spreads_vs_germany.png")
 plt.close(fig)
 
-
+# ============================================================
+# PLOT 4: Correlation Heatmap
+# ============================================================
 print("\n[5/7] Creating correlation heatmap...")
 
-
+# Pivot data for correlation
 pivot_df = df.pivot_table(
     values='bond_yield_10y',
     index='date',
@@ -204,7 +214,7 @@ correlation_matrix = pivot_df.corr()
 
 fig, ax = make_subplots()
 
-
+# Professional diverging colormap
 cmap = sns.diverging_palette(250, 10, as_cmap=True)
 
 sns.heatmap(correlation_matrix, annot=True, fmt='.3f', cmap=cmap,
@@ -220,7 +230,9 @@ fig.savefig(FIGURES_DIR / '05_correlation_heatmap.png', dpi=300, facecolor='whit
 print("[saved] ../plots/05_correlation_heatmap.png")
 plt.close(fig)
 
-
+# ============================================================
+# PLOT 5: Volatility Comparison
+# ============================================================
 print("\n[6/7] Creating volatility comparison plot...")
 fig, ax = make_subplots()
 
@@ -231,7 +243,7 @@ for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania', 'France', 'Germa
     ax.plot(data['date'], data['yield_std_30d'],
             label=country, linewidth=linewidth, alpha=alpha)
 
-
+# Key events
 annotate_vertical_events(ax)
 
 ax.set_xlabel('Date', fontsize=13, fontweight='bold')
@@ -245,7 +257,9 @@ fig.savefig(FIGURES_DIR / '06_volatility_comparison.png', dpi=300, facecolor='wh
 print("[saved] ../plots/06_volatility_comparison.png")
 plt.close(fig)
 
-
+# ============================================================
+# PLOT 6: Croatia Euro Timeline
+# ============================================================
 print("\n[7/7] Creating Croatia euro adoption timeline...")
 
 croatia_data = df[df['country'] == 'Croatia'].sort_values('date')
@@ -253,17 +267,17 @@ croatia_data = df[df['country'] == 'Croatia'].sort_values('date')
 fig, axes = make_subplots(nrows=2, ncols=1, gridspec_kw={'height_ratios': [2, 1]}, sharex=True)
 ax1, ax2 = axes
 
-
+# Top panel: Bond yields
 ax1.plot(croatia_data['date'], croatia_data['bond_yield_10y'],
          linewidth=3.5, label='Croatia 10Y Yield')
 
-
+# Germany for reference
 germany_data = df[df['country'] == 'Germany'].sort_values('date')
 ax1.plot(germany_data['date'], germany_data['bond_yield_10y'],
          linewidth=2.5, alpha=0.7,
          linestyle='--', label='Germany 10Y Yield (Reference)')
 
-
+# Key events with better positioning
 events = [
     ('2018-07-10', 'Maastricht\nProcess\nBegins'),
     ('2022-07-12', 'EU Council\nApproves\nEuro Entry'),
@@ -274,7 +288,7 @@ for date_str, label in events:
     date = pd.to_datetime(date_str)
     ax1.axvline(date, linestyle='--', linewidth=2.5, alpha=0.7)
 
-
+# Add event labels anchored to their vertical lines
 ylim = ax1.get_ylim()
 ymin, ymax = ylim
 vertical_margin = (ymax - ymin) * 0.03
@@ -311,17 +325,17 @@ ax1.spines['top'].set_visible(False)
 ax1.spines['right'].set_visible(False)
 ax1.set_xticklabels([])
 
-
+# Bottom panel: Spreads
 ax2.plot(croatia_data['date'], croatia_data['spread_vs_germany'],
          linewidth=3.5, label='Croatia Spread vs Germany')
 ax2.axhline(0, linestyle='-', linewidth=1.5, alpha=0.5)
 
-
+# Same events
 for date_str, label in events:
     date = pd.to_datetime(date_str)
     ax2.axvline(date, linestyle='--', linewidth=2.5, alpha=0.7)
 
-
+# Shade post-adoption
 euro_date = pd.to_datetime('2023-01-01')
 ax2.axvspan(euro_date, croatia_data['date'].max(), alpha=0.15,
            zorder=0)

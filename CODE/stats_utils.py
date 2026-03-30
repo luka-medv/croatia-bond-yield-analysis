@@ -1,4 +1,4 @@
-
+"""Shared statistical helper functions used by multiple analysis scripts."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 
 def build_vif_table(df: pd.DataFrame, cols: Sequence[str]) -> pd.DataFrame:
-    
+    """Compute variance-inflation factors for the given columns."""
     subset = df[list(cols)].dropna()
     if subset.empty:
         return pd.DataFrame({"Variable": cols, "VIF": np.nan})
