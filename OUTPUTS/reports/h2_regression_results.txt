@@ -81,27 +81,27 @@ PLACEBO TESTS - CONVERGENCE TIMELINE
 Testing for convergence at 5 fake adoption dates to identify when it began:
 
 Placebo 1 (2021-01-01, 24 months before actual event):
-  DiD Coefficient: 0.2041
+  DiD Coefficient: 0.3591
   P-value: 0.0000
   Status: [warn] SIGNIFICANT effect (convergence already underway)
 
 Placebo 2 (2021-07-01, 18 months before actual event):
-  DiD Coefficient: -0.5122
-  P-value: 0.0000
+  DiD Coefficient: -0.0760
+  P-value: 0.0034
   Status: [warn] SIGNIFICANT effect (convergence already underway)
 
 Placebo 3 (2022-01-01, 12 months before actual event):
-  DiD Coefficient: -0.4624
-  P-value: 0.0000
-  Status: [warn] SIGNIFICANT effect (convergence already underway)
+  DiD Coefficient: -0.0108
+  P-value: 0.7189
+  Status: [ok] NO significant effect (validates main result)
 
 Placebo 4 (2022-07-01, 6 months before actual event):
-  DiD Coefficient: -0.6707
+  DiD Coefficient: -0.2667
   P-value: 0.0000
   Status: [warn] SIGNIFICANT effect (convergence already underway)
 
 Placebo 5 (2022-10-01, 3 months before actual event):
-  DiD Coefficient: -0.7143
+  DiD Coefficient: -0.3534
   P-value: 0.0000
   Status: [warn] SIGNIFICANT effect (convergence already underway)
 
@@ -144,7 +144,7 @@ KEY FINDINGS
 
 3. VALIDITY CHECKS:
    Parallel Trends: VIOLATED (convergence process)
-   Placebo Tests: 0/5 PASSED, 5/5 FAILED
+   Placebo Tests: 1/5 PASSED, 4/5 FAILED
    Robustness: Consistent across all specifications
 
 4. INTERPRETATION:
