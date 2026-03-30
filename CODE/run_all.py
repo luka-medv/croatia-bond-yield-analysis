@@ -49,9 +49,6 @@ PIPELINE = [
         OUTPUT_FIGURES / "h2_event_study_window5.png",
         OUTPUT_FIGURES / "h2_event_study_window3.png",
     ]),
-    ("placebo_column_c", [
-        OUTPUT_REPORTS / "placebo_column_c_results.txt",
-    ]),
     ("f_test_comparison", [
         OUTPUT_REPORTS / "f_test_comparison_results.txt",
     ]),
