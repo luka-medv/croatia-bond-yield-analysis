@@ -1,0 +1,25 @@
+======================================================================
+F-TEST COMPARISON: MACRO CONTROLS JOINT SIGNIFICANCE
+Constraint: gdp_growth_quarterly = inflation_hicp = public_debt_gdp = 0
+======================================================================
+
+H1: ECB rate hike (27 July 2022)  N=4082
+  HC3:  F=   618.191  p=0.000000
+  HAC:  F=   107.364  p=0.000000
+  OLS:  F=   789.145  p=0.000000
+
+H1b: ECB rate hike (2 Feb 2023)  N=6163
+  HC3:  F=  2519.252  p=0.000000
+  HAC:  F=   439.204  p=0.000000
+  OLS:  F=  3044.234  p=0.000000
+
+H2: Euro adoption spread (1 Jan 2023)  N=4082
+  HC3:  F=  1311.321  p=0.000000
+  HAC:  F=   239.418  p=0.000000
+  OLS:  F=  1946.830  p=0.000000
+
+----------------------------------------------------------------------
+NOTE: Document para [107] says 'under HC3 inference (F = 110.570)'
+but F=110.570 matches the HAC estimator, not HC3.
+HC3 F-test for H1 gives F=630.812.
+
