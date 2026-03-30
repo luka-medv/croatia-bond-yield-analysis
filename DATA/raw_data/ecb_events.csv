@@ -1,0 +1,59 @@
+date,event_type,description,is_key_event,year,month
+2015-01-22,Rate Decision,QE announcement (PSPP),,2015,1
+2015-03-05,Rate Decision,Monetary policy decision,,2015,3
+2015-09-03,Rate Decision,Monetary policy decision,,2015,9
+2015-12-03,Rate Decision,Deposit rate cut to -0.30%,,2015,12
+2016-03-10,Rate Decision,"Rate cut, QE expansion",,2016,3
+2016-06-02,Rate Decision,Monetary policy decision,,2016,6
+2016-09-08,Rate Decision,Monetary policy decision,,2016,9
+2016-12-08,Rate Decision,QE extension to Dec 2017,,2016,12
+2017-01-19,Rate Decision,Monetary policy decision,,2017,1
+2017-04-27,Rate Decision,Monetary policy decision,,2017,4
+2017-06-08,Rate Decision,Monetary policy decision,,2017,6
+2017-10-26,Rate Decision,"QE extension, tapering announced",,2017,10
+2017-12-14,Rate Decision,Monetary policy decision,,2017,12
+2018-01-25,Rate Decision,Monetary policy decision,,2018,1
+2018-06-14,Rate Decision,QE end date announced (Dec 2018),,2018,6
+2018-07-11,Croatia Event,Croatia announces euro adoption intention,,2018,7
+2018-09-13,Rate Decision,Monetary policy decision,,2018,9
+2018-12-13,Rate Decision,End of net QE purchases,,2018,12
+2019-03-07,Rate Decision,TLTRO III announced,,2019,3
+2019-06-06,Rate Decision,Forward guidance extension,,2019,6
+2019-09-12,Rate Decision,"Rate cut, QE restart (APP)",,2019,9
+2019-12-12,Rate Decision,Monetary policy decision,,2019,12
+2020-03-12,Rate Decision,COVID response measures,,2020,3
+2020-03-18,Emergency Decision,PEPP launched (€750bn),,2020,3
+2020-06-04,Rate Decision,"PEPP increased to €1,350bn",,2020,6
+2020-07-10,Croatia Event,Croatia joins ERM II (Exchange Rate Mechanism),True,2020,7
+2020-12-10,Rate Decision,"PEPP increased to €1,850bn",,2020,12
+2021-03-11,Rate Decision,PEPP acceleration,,2021,3
+2021-06-10,Rate Decision,Monetary policy decision,,2021,6
+2021-09-09,Rate Decision,PEPP moderation,,2021,9
+2021-12-16,Rate Decision,PEPP end date set (March 2022),,2021,12
+2022-02-03,Rate Decision,Hawkish pivot signaled,,2022,2
+2022-03-10,Rate Decision,"PEPP ends, APP tapering",,2022,3
+2022-06-01,Croatia Event,ECB Convergence Report: Croatia meets criteria,True,2022,6
+2022-06-09,Rate Decision,Rate hike announced for July,,2022,6
+2022-07-12,Croatia Event,EU Council approves Croatia euro adoption,True,2022,7
+2022-07-21,Emergency Meeting,TPI (anti-fragmentation tool) introduced,,2022,7
+2022-07-27,Rate Decision,First rate hike: +50bps (THESIS KEY DATE),True,2022,7
+2022-09-08,Rate Decision,Rate hike: +75bps,,2022,9
+2022-10-27,Rate Decision,Rate hike: +75bps,,2022,10
+2022-12-15,Rate Decision,Rate hike: +50bps,,2022,12
+2023-01-01,Structural Event,CROATIA EURO ADOPTION (THESIS KEY DATE),True,2023,1
+2023-02-02,Rate Decision,Rate hike: +50bps (THESIS KEY DATE),True,2023,2
+2023-03-16,Rate Decision,Rate hike: +50bps,,2023,3
+2023-05-04,Rate Decision,Rate hike: +25bps,,2023,5
+2023-06-15,Rate Decision,Rate hike: +25bps,,2023,6
+2023-07-27,Rate Decision,Rate hike: +25bps,,2023,7
+2023-09-14,Rate Decision,Rate hike: +25bps (peak),,2023,9
+2023-10-26,Rate Decision,Rates unchanged,,2023,10
+2023-12-14,Rate Decision,Rates unchanged,,2023,12
+2024-01-25,Rate Decision,Rates unchanged,,2024,1
+2024-03-07,Rate Decision,Rates unchanged,,2024,3
+2024-04-11,Rate Decision,Rate cut signaled,,2024,4
+2024-06-06,Rate Decision,First rate cut: -25bps,,2024,6
+2024-07-18,Rate Decision,Rates unchanged,,2024,7
+2024-09-12,Rate Decision,Rate cut: -25bps,,2024,9
+2024-10-17,Rate Decision,Rate cut: -25bps,,2024,10
+2024-12-12,Rate Decision,Rate cut: -25bps,,2024,12
