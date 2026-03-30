@@ -1,0 +1,127 @@
+================================================================================
+HYPOTHESIS 2: EURO ADOPTION IMPACT ON CROATIAN BOND YIELDS
+WITH ROBUSTNESS CHECKS
+================================================================================
+
+Event: Croatia Euro Adoption on January 1, 2023
+Treatment: Croatia
+Control: Slovenia, Slovakia, Lithuania (already in Eurozone)
+Method: Difference-in-Differences Analysis
+
+================================================================================
+PANEL A: BOND YIELD REGRESSIONS
+================================================================================
+
+
+===========================================================
+                        Basic DiD  With Controls Country FE
+-----------------------------------------------------------
+Intercept               1.1571***  0.4447***     5.1378*** 
+                        (0.0351)   (0.0704)      (0.3245)  
+is_croatia              0.5194***  0.9187***               
+                        (0.0667)   (0.0408)                
+post_euro_adoption      2.4042***  2.6876***     2.4852*** 
+                        (0.0369)   (0.0254)      (0.0304)  
+croatia_ex_post         -0.5172*** -0.9011***    -1.4141***
+                        (0.0692)   (0.0419)      (0.0565)  
+gdp_growth_quarterly               -0.1583***    -0.1393***
+                                   (0.0095)      (0.0096)  
+inflation_hicp                     0.1293***     0.1210*** 
+                                   (0.0026)      (0.0025)  
+public_debt_gdp                    -0.0038***    -0.0549***
+                                   (0.0010)      (0.0044)  
+C(country)[T.Lithuania]                          -2.4885***
+                                                 (0.1404)  
+C(country)[T.Slovakia]                           -1.7347***
+                                                 (0.0624)  
+C(country)[T.Slovenia]                           -0.8125***
+                                                 (0.0370)  
+R-squared               0.5659     0.8216        0.8320    
+R-squared Adj.          0.5656     0.8214        0.8317    
+N                       4,082      4,082         4,082     
+R^2                     0.5659     0.8216        0.8320    
+===========================================================
+Standard errors in parentheses.
+* p<.1, ** p<.05, ***p<.01
+
+================================================================================
+PANEL B: SPREAD CONVERGENCE REGRESSIONS (PRIMARY TEST)
+================================================================================
+
+
+=============================================
+                     Basic DiD  With Controls
+---------------------------------------------
+Intercept            0.7241***  0.7943***    
+                     (0.0128)   (0.0304)     
+is_croatia           0.5093***  0.7182***    
+                     (0.0239)   (0.0167)     
+post_euro_adoption   0.4374***  0.5562***    
+                     (0.0161)   (0.0110)     
+croatia_ex_post      -0.5064*** -0.7233***   
+                     (0.0284)   (0.0193)     
+gdp_growth_quarterly            0.0220***    
+                                (0.0040)     
+inflation_hicp                  0.0555***    
+                                (0.0011)     
+public_debt_gdp                 -0.0094***   
+                                (0.0004)     
+R-squared            0.2095     0.6751       
+R-squared Adj.       0.2089     0.6747       
+N                    4,082      4,082        
+R^2                  0.2095     0.6751       
+=============================================
+Standard errors in parentheses.
+* p<.1, ** p<.05, ***p<.01
+
+================================================================================
+PLACEBO RESULTS
+================================================================================
+
+Detailed placebo timeline is reported in h2_placebo_results.txt.
+Earliest significant placebo date: 2021-01-01
+
+INTERPRETATION: Convergence began around 2021-01-01
+(24 months before formal euro adoption).
+See h2_placebo_results.txt for the full placebo timeline.
+
+================================================================================
+ROBUSTNESS CHECKS
+================================================================================
+
+Main specification (all controls):      -0.7233 (p=0.0000)
+Excluding Slovenia:                     -1.0259 (p=0.0000)
+Excluding Slovakia:                     -0.7118 (p=0.0000)
+Excluding Lithuania:                    -0.3862 (p=0.0000)
+Shorter window (2022-2024):             -0.7068 (p=0.0000)
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+1. BOND YIELD EFFECT:
+   DiD Coefficient: -0.9011 pp
+   P-value: 0.0000
+
+2. SPREAD CONVERGENCE EFFECT (PRIMARY):
+   DiD Coefficient: -0.7233 pp
+   Standard Error: 0.0193
+   T-statistic: -37.4376
+   P-value: 0.0000
+   Spread Reduction: 0.0690 pp
+
+   Statistical Significance: highly significant (p < 0.01)
+
+3. VALIDITY CHECKS:
+   Parallel Trends: VIOLATED (convergence process)
+   Placebo Details: see h2_placebo_results.txt
+   Robustness: Consistent across all specifications
+
+4. INTERPRETATION:
+   Euro adoption REDUCED Croatian bond yield spreads by 0.7233 pp
+   relative to control countries, indicating CONVERGENCE to German yields.
+   This supports H2.
+
+CONCLUSION: H2 is SUPPORTED by the data.
+Note: Parallel trends violation suggests anticipation effects.
+Convergence may have started before formal euro adoption.

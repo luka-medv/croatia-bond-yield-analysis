@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-OUTPUT_REPORTS = ROOT.parent / "OUTPUTS" / "reports"
+OUTPUT_REPORTS = ROOT.parent / "OUTPUTS" / "raw_outputs"
 OUTPUT_FIGURES = ROOT.parent / "OUTPUTS" / "figures"
 DATA_DIR = ROOT.parent / "DATA"
 
