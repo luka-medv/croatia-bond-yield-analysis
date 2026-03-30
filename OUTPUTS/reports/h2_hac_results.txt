@@ -1,0 +1,14 @@
+================================================================================
+H2 Appendix: HAC (Newey-West) SE, VIF and F-test
+================================================================================
+
+HAC (maxlags=5) - Primary spread DiD coef (with controls)
+  croatia_ex_post: coef=-0.7233, SE=0.0455, p=0.0000
+
+Controls joint significance: F=239.418, p=0.0000
+
+VIF (controls):
+  gdp_growth_quarterly: VIF=1.17
+  inflation_hicp: VIF=1.18
+  public_debt_gdp: VIF=1.10
+
