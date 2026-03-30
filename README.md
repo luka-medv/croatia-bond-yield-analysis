@@ -22,7 +22,7 @@ Empirical analysis examining the effects of ECB interest rate hikes and Croatia'
 CODE/           Python analysis scripts (run_all.py is the entry point)
 DATA/           Bond yield, macroeconomic, and ECB event datasets
 OUTPUTS/
-  figures/      Publication-quality plots and visualizations
+  figures/      Plots and visualizations
   tables/       LaTeX tables for regression results
   reports/      Text summaries of statistical analyses
 ```
