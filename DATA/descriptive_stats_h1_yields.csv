@@ -1,0 +1,9 @@
+Country,Period,Mean,SD,Min,Max,N
+Croatia,PostHike,3.5378,0.3738,2.375,4.211,615
+Croatia,PreHike,1.1971,0.9816,0.41,3.426,404
+Lithuania,PostHike,3.8811,0.4925,2.441,4.8,607
+Lithuania,PreHike,0.7159,0.8823,-0.01,3.0,399
+Slovakia,PostHike,3.4448,0.4045,1.76,4.31,624
+Slovakia,PreHike,0.4256,0.8903,-0.5,2.83,408
+Slovenia,PostHike,3.1949,0.3472,1.792,3.873,619
+Slovenia,PreHike,0.6193,0.8491,-0.208,2.856,406
