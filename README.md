@@ -32,12 +32,11 @@ OUTPUTS/
 ```bash
 pip install pandas numpy statsmodels matplotlib seaborn scipy requests adjustText
 python CODE/run_all.py
-python CODE/regenerate_thesis_figures.py
 ```
 
-`run_all.py` regenerates the descriptive tables, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
+`run_all.py` regenerates the paper tables, paper figures, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
 
-`regenerate_thesis_figures.py` rebuilds the four publication-style thesis figures that are kept separately from the core regression pipeline.
+The paper-specific artefacts are organized through `paper_tables.py` and `paper_figures.py`, and both are invoked from `run_all.py`.
 
 ## Data Sources
 
