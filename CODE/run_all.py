@@ -40,9 +40,6 @@ PIPELINE = [
     ("h2_event_study", [
         OUTPUT_REPORTS / "h2_event_study_results.txt",
     ]),
-    ("f_test_comparison", [
-        OUTPUT_REPORTS / "f_test_comparison_results.txt",
-    ]),
     ("paper_figures", [
         OUTPUT_FIGURES / "figure_3_1_all_countries_yields.png",
         OUTPUT_FIGURES / "figure_3_3_spreads_vs_germany.png",

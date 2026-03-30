@@ -33,12 +33,13 @@ pip install pandas numpy statsmodels matplotlib seaborn scipy requests adjustTex
 python CODE/run_all.py
 ```
 
-`run_all.py` regenerates the descriptive CSV exports, paper figures, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
+`run_all.py` regenerates the descriptive CSV exports, paper figures, regression reports, placebo outputs, event studies, and HAC/VIF appendix outputs.
 
 The lean pipeline is organized around:
 - `descriptive_exports.py` for `DATA/descriptive_stats_*.csv`
 - `paper_figures.py` for the figure set referenced in the final Word paper
 - raw `OUTPUTS/reports/*.txt` files as the source of truth behind the regression, placebo, robustness, and event-study tables
+- `DATA/input_data.csv` as the verified analytical panel used by the lean replication pipeline
 
 ## Data Sources
 
@@ -55,5 +56,6 @@ The lean pipeline is organized around:
 ## Replication Notes
 
 - The repo is streamlined for the final Word paper `ECB_Croatia bonds - resolved comments.docx`.
+- The repo intentionally starts from the verified merged panel `DATA/input_data.csv`; raw download and merge scripts are omitted to keep the project lean.
 - Descriptive tables in the paper should be read off the refreshed CSV exports in `DATA/`.
 - Regression and event-study tables in the paper should be populated from the corresponding raw reports in `OUTPUTS/reports/`.

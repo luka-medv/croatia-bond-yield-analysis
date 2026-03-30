@@ -7,8 +7,8 @@ textual reports) are written under the OUTPUTS directory.
 Directory layout expected:
     Codebase/
         CODE/       <- this file lives here
-        DATA/       <- input_data.csv, raw_data/, manual_downloads/
-        OUTPUTS/    <- reports/, figures/, tables/
+        DATA/       <- input_data.csv, descriptive exports
+        OUTPUTS/    <- reports/, figures/
 """
 
 from __future__ import annotations
