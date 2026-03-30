@@ -39,7 +39,7 @@ python CODE/run_all.py
 
 The lean pipeline is organized around:
 - `descriptive_exports.py` for `DATA/descriptive_stats_*.csv`
-- `paper_figures.py` for the figure set referenced in the final Word paper
+- `paper_figures.py` for the final figure set used in the paper
 - raw `OUTPUTS/raw_outputs/*.txt` files as the source of truth behind the regression, placebo, robustness, and event-study tables
 - `DATA/input_data.csv` as the verified analytical panel used by the lean replication pipeline
 
@@ -57,7 +57,7 @@ The lean pipeline is organized around:
 
 ## Replication Notes
 
-- The repo is streamlined for the final Word paper `ECB_Croatia bonds - resolved comments.docx`.
+- The repo is streamlined for the final paper replication workflow.
 - The repo intentionally starts from the verified merged panel `DATA/input_data.csv`; raw download and merge scripts are omitted to keep the project lean.
 - Descriptive tables in the paper should be read off the refreshed CSV exports in `DATA/`.
 - Regression and event-study tables in the paper should be populated from the corresponding raw outputs in `OUTPUTS/raw_outputs/`.
