@@ -20,7 +20,7 @@ Empirical analysis of the effects of ECB rate hikes and Croatia's euro adoption 
 
 ```text
 CODE/           Minimal analysis scripts
-DATA/           Bond yield, macroeconomic, ECB event datasets, and descriptive CSV exports
+DATA/           Verified analytical panel and descriptive CSV exports
 OUTPUTS/
   figures/      Final paper figures
   raw_outputs/  Raw analytical outputs used to populate paper tables
@@ -29,11 +29,13 @@ OUTPUTS/
 ## Usage
 
 ```bash
-pip install pandas numpy statsmodels matplotlib seaborn scipy requests adjustText
+pip install pandas numpy statsmodels matplotlib seaborn scipy
 python CODE/run_all.py
 ```
 
 `run_all.py` regenerates the descriptive CSV exports, paper figures, regression reports, placebo outputs, event studies, and HAC/VIF appendix outputs.
+
+`adjustText` is optional. If installed, it improves label placement in selected figures, but the lean replication pipeline runs without it.
 
 The lean pipeline is organized around:
 - `descriptive_exports.py` for `DATA/descriptive_stats_*.csv`
