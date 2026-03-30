@@ -351,10 +351,11 @@ def run():
 
     # Save comprehensive text results
     def _write_results(handle):
+        first_significant = next((result for result in placebo_results if result['pvalue'] < 0.05), None)
         lines = [
             "=" * 80,
             "HYPOTHESIS 1: ECB RATE HIKE IMPACT ON CROATIAN BOND YIELDS",
-            "WITH PLACEBO TESTS AND ROBUSTNESS CHECKS",
+            "WITH ROBUSTNESS CHECKS",
             "=" * 80,
             "",
             "Event: ECB First Rate Hike (+50bps) on July 27, 2022",
@@ -369,40 +370,23 @@ def run():
             str(results_table),
             "",
             "=" * 80,
-            "PLACEBO TESTS - ANTICIPATION TIMELINE",
+            "PLACEBO RESULTS",
             "=" * 80,
             "",
-            "Testing for effects at 5 fake treatment dates to identify when anticipation began:",
+            "Detailed placebo timeline is reported in h1_placebo_results.txt.",
+            f"Earliest significant placebo date: {first_significant['date'] if first_significant else 'None'}",
+            "",
         ]
 
-        for result in placebo_results:
-            lines.append(f"{result['name']} ({result['date']}, {result['months_before']} months before actual event):")
-            lines.append(f"  DiD Coefficient: {result['coefficient']:.4f}")
-            lines.append(f"  P-value: {result['pvalue']:.4f}")
-            status = "[ok] NO significant effect (validates main result)" if result['pvalue'] > 0.05 else "[warn] SIGNIFICANT effect (anticipation detected)"
-            lines.append(f"  Status: {status}")
-            lines.append("")
-
-        lines.extend([
-            "Main Effect (July 27, 2022 - actual ECB rate hike):",
-            f"  DiD Coefficient: {did_coef:.4f}",
-            f"  P-value: {did_pval:.4f}",
-            "  Status: [ok] HIGHLY SIGNIFICANT",
-            "",
-        ])
-
-        first_significant = next((result for result in placebo_results if result['pvalue'] < 0.05), None)
         if first_significant:
             lines.extend([
-                f"INTERPRETATION: Anticipation effects began around {first_significant['date']}",
+                f"Interpretation: anticipation effects began around {first_significant['date']}",
                 f"({first_significant['months_before']} months before the actual rate hike).",
-                "This suggests markets responded to ECB policy signals, not just the mechanical rate change.",
                 "",
             ])
         else:
             lines.extend([
-                "INTERPRETATION: No anticipation effects detected. Main effect appears to be",
-                "directly attributable to the July 27, 2022 rate hike itself.",
+                "Interpretation: no anticipation effects detected in the separate placebo file.",
                 "",
             ])
 
@@ -429,11 +413,8 @@ def run():
             f"Statistical Significance: {did_significance}",
             "",
             f"Parallel Trends: {'SATISFIED' if parallel_satisfied else 'VIOLATED'}",
+            "Placebo Details: see h1_placebo_results.txt",
         ])
-
-        placebo_passes = sum(1 for r in placebo_results if r['pvalue'] > 0.05)
-        placebo_fails = len(placebo_results) - placebo_passes
-        lines.append(f"Placebo Tests: {placebo_passes}/{len(placebo_results)} PASSED, {placebo_fails}/{len(placebo_results)} FAILED")
         lines.append("Robustness: Consistent across all alternative control groups")
         lines.append("")
 

@@ -406,9 +406,10 @@ def run():
     )
 
     def _write_results(handle):
+        first_significant = next((r for r in placebo_results if r['pvalue'] < 0.05), None)
         handle.write("=" * 80 + "\n")
         handle.write("HYPOTHESIS 2: EURO ADOPTION IMPACT ON CROATIAN BOND YIELDS\n")
-        handle.write("WITH PLACEBO TESTS AND ROBUSTNESS CHECKS\n")
+        handle.write("WITH ROBUSTNESS CHECKS\n")
         handle.write("=" * 80 + "\n\n")
         handle.write("Event: Croatia Euro Adoption on January 1, 2023\n")
         handle.write("Treatment: Croatia\n")
@@ -428,33 +429,17 @@ def run():
         handle.write("\n\n")
 
         handle.write("=" * 80 + "\n")
-        handle.write("PLACEBO TESTS - CONVERGENCE TIMELINE\n")
+        handle.write("PLACEBO RESULTS\n")
         handle.write("=" * 80 + "\n\n")
-        handle.write("Testing for convergence at 5 fake adoption dates to identify when it began:\n\n")
+        handle.write("Detailed placebo timeline is reported in h2_placebo_results.txt.\n")
+        handle.write(f"Earliest significant placebo date: {first_significant['date'] if first_significant else 'None'}\n\n")
 
-        for result in placebo_results:
-            handle.write(f"{result['name']} ({result['date']}, {result['months_before']} months before actual event):\n")
-            handle.write(f"  DiD Coefficient: {result['coefficient']:.4f}\n")
-            handle.write(f"  P-value: {result['pvalue']:.4f}\n")
-            if result['pvalue'] > 0.05:
-                handle.write("  Status: [ok] NO significant effect (validates main result)\n\n")
-            else:
-                handle.write("  Status: [warn] SIGNIFICANT effect (convergence already underway)\n\n")
-
-        handle.write("Main Effect (January 1, 2023 - actual euro adoption):\n")
-        handle.write(f"  DiD Coefficient: {did_spreads:.4f}\n")
-        handle.write(f"  P-value: {did_spreads_pval:.4f}\n")
-        handle.write("  Status: [ok] HIGHLY SIGNIFICANT\n\n")
-
-        first_significant = next((r for r in placebo_results if r['pvalue'] < 0.05), None)
         if first_significant:
             handle.write(f"INTERPRETATION: Convergence began around {first_significant['date']}\n")
             handle.write(f"({first_significant['months_before']} months before formal euro adoption).\n")
-            handle.write("This suggests markets priced in euro adoption during the Maastricht criteria process,\n")
-            handle.write("demonstrating forward-looking behavior and policy credibility.\n\n")
+            handle.write("See h2_placebo_results.txt for the full placebo timeline.\n\n")
         else:
-            handle.write("INTERPRETATION: No early convergence detected. Main effect appears to be\n")
-            handle.write("directly attributable to the January 1, 2023 euro adoption itself.\n\n")
+            handle.write("INTERPRETATION: No early convergence detected in the separate placebo file.\n\n")
 
         handle.write("=" * 80 + "\n")
         handle.write("ROBUSTNESS CHECKS\n")
@@ -482,10 +467,8 @@ def run():
         handle.write(f"   Statistical Significance: {significance_label}\n\n")
 
         handle.write("3. VALIDITY CHECKS:\n")
-        placebo_passes = sum(1 for r in placebo_results if r['pvalue'] > 0.05)
-        placebo_fails = len(placebo_results) - placebo_passes
         handle.write(f"   Parallel Trends: {'SATISFIED' if parallel_satisfied else 'VIOLATED (convergence process)'}\n")
-        handle.write(f"   Placebo Tests: {placebo_passes}/{len(placebo_results)} PASSED, {placebo_fails}/{len(placebo_results)} FAILED\n")
+        handle.write("   Placebo Details: see h2_placebo_results.txt\n")
         handle.write("   Robustness: Consistent across all specifications\n\n")
 
         handle.write("4. INTERPRETATION:\n")
