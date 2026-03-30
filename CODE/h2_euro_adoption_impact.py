@@ -1,4 +1,14 @@
+"""
+Hypothesis 2 Testing: Impact of Euro Adoption on Croatian Bond Yields
 
+H2: Croatia's euro adoption (January 1, 2023) led to significant convergence
+    of Croatian bond yields toward the euro area benchmark (German Bunds)
+
+Method: Difference-in-Differences (DiD) Analysis with Placebo Tests and Robustness Checks
+Treatment Group: Croatia
+Control Group: Small Eurozone countries (Slovenia, Slovakia, Lithuania)
+Event: Croatia euro adoption on January 1, 2023
+"""
 
 import pandas as pd
 import numpy as np
@@ -16,7 +26,7 @@ warnings.filterwarnings('ignore')
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-
+# Fix Windows encoding issues
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -33,26 +43,28 @@ def run():
     print("With Placebo Tests and Robustness Checks")
     print("=" * 80)
 
-    
+    # Load data
     print("\n[1/11] Loading data...")
     df = pd.read_csv(DATA_PATH, parse_dates=['date'])
     print(f"[ok] Loaded {len(df):,} observations")
 
-    
+    # Filter to relevant countries and time period
     df_h2 = df[
         (df['country'].isin(['Croatia', 'Slovenia', 'Slovakia', 'Lithuania'])) &
         (df['date'] >= '2021-01-01') &
         (df['date'] <= '2024-12-31')
     ].copy()
 
-    
+    # Use consistent interaction naming downstream (matches thesis tables)
     df_h2.rename(columns={'croatia_x_post_euro': 'croatia_ex_post'}, inplace=True)
 
     print(f"[ok] Filtered to {len(df_h2):,} observations")
     print(f"  Period: {df_h2['date'].min().date()} to {df_h2['date'].max().date()}")
     print(f"  Countries: {', '.join(sorted(df_h2['country'].unique()))}")
 
-    
+    # ============================================================
+    # DESCRIPTIVE STATISTICS: SPREAD VS GERMANY
+    # ============================================================
     print("\n[2/14] Analyzing yield spreads vs Germany...")
 
     df_h2['period'] = df_h2['post_euro_adoption'].map({
@@ -71,7 +83,7 @@ def run():
     print("\nSpread vs Germany (percentage points):")
     print(spread_stats)
 
-    
+    # Save as PNG table
     fig, ax = plt.subplots(figsize=(20, 12))
     ax.axis('tight')
     ax.axis('off')
@@ -103,7 +115,7 @@ def run():
 
     save_figure(fig, 'h2_spread_statistics.png', facecolor='white', dpi=300)
 
-    
+    # Calculate spread reduction
     croatia_pre = df_h2[(df_h2['country'] == 'Croatia') &
                          (df_h2['post_euro_adoption'] == 0)]['spread_vs_germany'].mean()
     croatia_post = df_h2[(df_h2['country'] == 'Croatia') &
@@ -116,14 +128,16 @@ def run():
     print(f"  Post-euro: {croatia_post:.4f} pp")
     print(f"  Reduction: {spread_reduction:.4f} pp")
 
-    
+    # ============================================================
+    # PARALLEL TRENDS TEST (PRE-EURO PERIOD)
+    # ============================================================
     print("\n[3/14] Testing parallel trends assumption...")
 
     df_pre = df_h2[df_h2['post_euro_adoption'] == 0].copy()
     df_pre['time_trend'] = (df_pre['date'] - df_pre['date'].min()).dt.days
 
     parallel_model = smf.ols(
-        ,
+        'spread_vs_germany ~ is_croatia + time_trend + is_croatia:time_trend',
         data=df_pre
     ).fit()
 
@@ -138,43 +152,45 @@ def run():
         print("[warn] Warning: Parallel trends assumption violated (p < 0.05)")
         parallel_satisfied = False
 
-    
+    # ============================================================
+    # MAIN DiD REGRESSION MODELS
+    # ============================================================
     print("\n[4/14] Running main DiD regression models...")
 
-    
+    # Model 1: DiD on bond yields (basic)
     model1_yields = smf.ols(
-        ,
+        'bond_yield_10y ~ is_croatia + post_euro_adoption + croatia_ex_post',
         data=df_h2
     ).fit(cov_type='HC3')
 
-    
+    # Model 2: DiD on bond yields (with controls)
     model2_yields = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_h2
     ).fit(cov_type='HC3')
 
-    
+    # Model 3: DiD on spreads (basic) - PRIMARY TEST
     model3_spreads = smf.ols(
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post',
         data=df_h2
     ).fit(cov_type='HC3')
 
-    
+    # Model 4: DiD on spreads (with controls) - PRIMARY TEST
     model4_spreads = smf.ols(
-        
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_h2
     ).fit(cov_type='HC3')
 
-    
+    # Model 5: Full specification with country FE
     model5_full = smf.ols(
-        
-        ,
+        'bond_yield_10y ~ C(country) + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_h2
     ).fit(cov_type='HC3')
 
-    
+    # Extract main DiD coefficients
     did_yields = model2_yields.params['croatia_ex_post']
     did_yields_pval = model2_yields.pvalues['croatia_ex_post']
 
@@ -194,16 +210,18 @@ def run():
 
     print(f"[ok] Main DiD Coefficient (Spreads): {did_spreads:.4f} (p={did_spreads_pval:.4f})")
 
-    
+    # ============================================================
+    # PLACEBO TESTS - Multiple time points to identify convergence timeline
+    # ============================================================
     print("\n[5/14] Running comprehensive placebo tests (5 time points)...")
 
-    
+    # Define all placebo test dates
     placebo_tests = [
-        ('2021-01-01', 24, 'Placebo 1'),  
-        ('2021-07-01', 18, 'Placebo 2'),  
-        ('2022-01-01', 12, 'Placebo 3'),  
-        ('2022-07-01', 6, 'Placebo 4'),   
-        ('2022-10-01', 3, 'Placebo 5'),   
+        ('2021-01-01', 24, 'Placebo 1'),  # 24 months before
+        ('2021-07-01', 18, 'Placebo 2'),  # 18 months before
+        ('2022-01-01', 12, 'Placebo 3'),  # 12 months before
+        ('2022-07-01', 6, 'Placebo 4'),   # 6 months before
+        ('2022-10-01', 3, 'Placebo 5'),   # 3 months before
     ]
 
     placebo_results = []
@@ -211,14 +229,14 @@ def run():
     for placebo_date_str, months_before, placebo_name in placebo_tests:
         placebo_date = pd.to_datetime(placebo_date_str)
 
-        
+        # Create placebo indicators
         df_h2[f'post_placebo_{len(placebo_results)+1}'] = (df_h2['date'] >= placebo_date).astype(int)
         df_h2[f'croatia_x_placebo_{len(placebo_results)+1}'] = df_h2['is_croatia'] * df_h2[f'post_placebo_{len(placebo_results)+1}']
 
-        
+        # Run placebo regression on spreads
         placebo_model = smf.ols(
-            
-            ,
+            f'spread_vs_germany ~ is_croatia + post_placebo_{len(placebo_results)+1} + croatia_x_placebo_{len(placebo_results)+1} + '
+            'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
             data=df_h2
         ).fit(cov_type='HC3')
 
@@ -229,15 +247,15 @@ def run():
         print(f"  {placebo_name} ({placebo_date_str}, -{months_before}mo): {placebo_coef:.4f} (p={placebo_pval:.4f}) {status}")
 
         placebo_results.append({
-            : placebo_name,
-            : placebo_date_str,
-            : months_before,
-            : placebo_coef,
-            : placebo_pval,
-            : status
+            'name': placebo_name,
+            'date': placebo_date_str,
+            'months_before': months_before,
+            'coefficient': placebo_coef,
+            'pvalue': placebo_pval,
+            'status': status
         })
 
-    
+    # Store for later use
     placebo_coef_1 = placebo_results[0]['coefficient']
     placebo_pval_1 = placebo_results[0]['pvalue']
     placebo_coef_2 = placebo_results[1]['coefficient']
@@ -251,13 +269,15 @@ def run():
 
     print(f"\n[ok] Completed {len(placebo_results)} placebo tests")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 1: Exclude Slovenia
+    # ============================================================
     print("\n[6/14] Robustness check 1: Excluding Slovenia from control group...")
 
     df_robust_1 = df_h2[df_h2['country'] != 'Slovenia'].copy()
     robust_model_1 = smf.ols(
-        
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_1
     ).fit(cov_type='HC3')
 
@@ -266,13 +286,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Slovenia): {robust_coef_1:.4f} (p={robust_pval_1:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 2: Exclude Slovakia
+    # ============================================================
     print("\n[7/14] Robustness check 2: Excluding Slovakia from control group...")
 
     df_robust_2 = df_h2[df_h2['country'] != 'Slovakia'].copy()
     robust_model_2 = smf.ols(
-        
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_2
     ).fit(cov_type='HC3')
 
@@ -281,13 +303,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Slovakia): {robust_coef_2:.4f} (p={robust_pval_2:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 3: Exclude Lithuania
+    # ============================================================
     print("\n[8/14] Robustness check 3: Excluding Lithuania from control group...")
 
     df_robust_3 = df_h2[df_h2['country'] != 'Lithuania'].copy()
     robust_model_3 = smf.ols(
-        
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_3
     ).fit(cov_type='HC3')
 
@@ -296,13 +320,15 @@ def run():
 
     print(f"DiD Coefficient (excl. Lithuania): {robust_coef_3:.4f} (p={robust_pval_3:.4f})")
 
-    
+    # ============================================================
+    # ROBUSTNESS CHECK 4: Alternative Time Window (2022-2024 only)
+    # ============================================================
     print("\n[9/14] Robustness check 4: Shorter time window (2022-2024)...")
 
     df_robust_4 = df_h2[df_h2['date'] >= '2022-01-01'].copy()
     robust_model_4 = smf.ols(
-        
-        ,
+        'spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
         data=df_robust_4
     ).fit(cov_type='HC3')
 
@@ -311,30 +337,32 @@ def run():
 
     print(f"DiD Coefficient (2022-2024 only): {robust_coef_4:.4f} (p={robust_pval_4:.4f})")
 
-    
+    # ============================================================
+    # REGRESSION RESULTS TABLE & SUMMARY
+    # ============================================================
     print("\n[10/14] Generating comprehensive results tables...")
 
-    
+    # Yields table
     results_yields = summary_col(
         [model1_yields, model2_yields, model5_full],
         stars=True,
         float_format='%.4f',
         model_names=['Basic DiD', 'With Controls', 'Country FE'],
         info_dict={
-            : lambda x: f"{int(x.nobs):,}",
-            : lambda x: f"{x.rsquared:.4f}"
+            'N': lambda x: f"{int(x.nobs):,}",
+            'R^2': lambda x: f"{x.rsquared:.4f}"
         }
     )
 
-    
+    # Spreads table
     results_spreads = summary_col(
         [model3_spreads, model4_spreads],
         stars=True,
         float_format='%.4f',
         model_names=['Basic DiD', 'With Controls'],
         info_dict={
-            : lambda x: f"{int(x.nobs):,}",
-            : lambda x: f"{x.rsquared:.4f}"
+            'N': lambda x: f"{int(x.nobs):,}",
+            'R^2': lambda x: f"{x.rsquared:.4f}"
         }
     )
 
@@ -440,7 +468,9 @@ def run():
 
     write_with_writer('h2_regression_results.txt', _write_results)
 
-    
+    # ============================================================
+    # VISUALIZATION 1: Main DiD Plot (Spreads)
+    # ============================================================
     print("\n[11/14] Creating main DiD visualization...")
     avg_spreads = df_h2.groupby(['is_croatia', 'period'])['spread_vs_germany'].mean().reset_index()
 
@@ -471,14 +501,14 @@ def run():
     ax.annotate('', xy=(1, croatia_spreads[1]), xytext=(1, counterfactual),
                 arrowprops=dict(arrowstyle='<->', color='green' if did_spreads < 0 else 'red', lw=3))
     ax.text(1.05, (croatia_spreads[1] + counterfactual) / 2,
-             if did_spreads < 0 else f'DiD Effect:\n{did_spreads:.4f}pp',
+            f'DiD Effect:\n{did_spreads:.4f}pp\n(Convergence)' if did_spreads < 0 else f'DiD Effect:\n{did_spreads:.4f}pp',
             fontsize=11, color='green' if did_spreads < 0 else 'red',
             bbox=dict(boxstyle='round', facecolor='white',
                      edgecolor='green' if did_spreads < 0 else 'red', linewidth=2))
 
     ax.set_xticks([0, 1])
     ax.set_xticklabels(['Pre-Euro\n(Before Jan 1, 2023)',
-                        ], fontsize=11)
+                        'Post-Euro\n(After Jan 1, 2023)'], fontsize=11)
     ax.set_ylabel('Spread vs Germany (percentage points)', fontsize=12, fontweight='bold')
     ax.legend(loc='best', fontsize=11, framealpha=0.95)
     ax.grid(True, alpha=0.3)
@@ -487,7 +517,9 @@ def run():
     plt.tight_layout()
     save_figure(fig, 'h2_spread_convergence_did.png', dpi=300)
 
-    
+    # ============================================================
+    # VISUALIZATION 2: Time Series of Spreads
+    # ============================================================
     print("\n[12/14] Creating spread timeseries visualization...")
     fig, ax = plt.subplots(figsize=(20, 12))
 
@@ -509,14 +541,16 @@ def run():
     plt.tight_layout()
     save_figure(fig, 'h2_spread_timeseries.png', dpi=300)
 
-    
+    # ============================================================
+    # VISUALIZATION 3: Robustness Check Comparison
+    # ============================================================
     print("\n[13/14] Creating robustness checks visualization...")
     fig, ax = plt.subplots(figsize=(12, 7))
 
     robustness_results = pd.DataFrame({
-        : ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania', 'Short Window\n(2022-2024)'],
-        : [did_spreads, robust_coef_1, robust_coef_2, robust_coef_3, robust_coef_4],
-        : [did_spreads_pval, robust_pval_1, robust_pval_2, robust_pval_3, robust_pval_4]
+        'Specification': ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania', 'Short Window\n(2022-2024)'],
+        'DiD_Coefficient': [did_spreads, robust_coef_1, robust_coef_2, robust_coef_3, robust_coef_4],
+        'P_Value': [did_spreads_pval, robust_pval_1, robust_pval_2, robust_pval_3, robust_pval_4]
     })
 
     bars = ax.bar(
@@ -550,7 +584,13 @@ def run():
     plt.tight_layout()
     save_figure(fig, 'h2_robustness_checks.png', dpi=300)
 
-    
+    # ============================================================
+    # NOTE: Placebo plots (h2_placebo_tests.png) are generated by
+    # placebo_column_c.py using the Column C specification.
+
+    # ============================================================
+    # SUMMARY
+    # ============================================================
     print("\n" + "=" * 80)
     print("HYPOTHESIS 2 TESTING COMPLETE")
     print("=" * 80)
@@ -566,12 +606,12 @@ def run():
     print(f"  Main DiD Coefficient (Spreads): {did_spreads:.4f} ({significance_label})")
     print(f"  Parallel Trends: {'[ok] SATISFIED' if parallel_satisfied else '[warn] VIOLATED'}")
 
-    
+    # Count placebo passes/fails
     placebo_passes = sum(1 for r in placebo_results if r['pvalue'] > 0.05)
     placebo_fails = len(placebo_results) - placebo_passes
     print(f"  Placebo Tests: {placebo_passes}/{len(placebo_results)} PASSED, {placebo_fails}/{len(placebo_results)} FAILED")
 
-    
+    # Identify when convergence started
     first_significant = None
     for result in placebo_results:
         if result['pvalue'] < 0.05:

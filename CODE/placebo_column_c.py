@@ -1,4 +1,13 @@
+"""
+Placebo tests — Column C specification.
 
+Each placebo regression includes BOTH the placebo indicator AND the actual
+treatment indicator, so that the placebo coefficient isolates the net
+pre-event differential after controlling for the real treatment effect.
+
+This script generates the numbers used in Tables 4.3 and 4.9,
+and the placebo bar charts (h1_placebo_tests.png, h2_placebo_tests.png).
+"""
 
 from __future__ import annotations
 
@@ -28,7 +37,10 @@ DATA_PATH = ROOT.parent / "DATA" / "input_data.csv"
 def run() -> None:
     df = pd.read_csv(DATA_PATH, parse_dates=["date"])
 
-    
+    # ================================================================
+    # H1: ECB rate hike — 27 July 2022
+    # Panel: Croatia vs Slovenia, Slovakia, Lithuania (2021-2024)
+    # ================================================================
     countries_h1 = ["Croatia", "Slovenia", "Slovakia", "Lithuania"]
     dfh1 = df[
         (df["country"].isin(countries_h1))
@@ -58,8 +70,9 @@ def run() -> None:
         dfh1[col_inter] = dfh1["is_croatia"] * dfh1[col_post]
 
         formula = (
-            
-            
+            f"bond_yield_10y ~ C(country) + {col_post} + {col_inter} + "
+            f"post_july_2022_hike + croatia_ex_post + "
+            f"gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
         )
 
         model = smf.ols(formula, data=dfh1).fit(cov_type="HC3")
@@ -71,15 +84,18 @@ def run() -> None:
         print(f"  {name} ({date_str}, -{months_before}mo): {coef:+.4f}  SE={se:.4f}  p={pval:.4f} {sig}")
 
         h1_results.append({
-            : name,
-            : date_str,
-            : months_before,
-            : coef,
-            : se,
-            : pval,
+            "name": name,
+            "date": date_str,
+            "months_before": months_before,
+            "coefficient": coef,
+            "se": se,
+            "pvalue": pval,
         })
 
-    
+    # ================================================================
+    # H2: Euro adoption — 1 January 2023
+    # Panel: Croatia vs Slovenia, Slovakia, Lithuania (2021-2024)
+    # ================================================================
     countries_h2 = ["Croatia", "Slovenia", "Slovakia", "Lithuania"]
     dfh2 = df[
         (df["country"].isin(countries_h2))
@@ -110,8 +126,9 @@ def run() -> None:
         dfh2[col_inter] = dfh2["is_croatia"] * dfh2[col_post]
 
         formula = (
-            
-            
+            f"spread_vs_germany ~ is_croatia + {col_post} + {col_inter} + "
+            f"post_euro_adoption + croatia_ex_post + "
+            f"gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
         )
 
         model = smf.ols(formula, data=dfh2).fit(cov_type="HC3")
@@ -123,82 +140,88 @@ def run() -> None:
         print(f"  {name} ({date_str}, -{months_before}mo): {coef:+.4f}  SE={se:.4f}  p={pval:.4f} {sig}")
 
         h2_results.append({
-            : name,
-            : date_str,
-            : months_before,
-            : coef,
-            : se,
-            : pval,
+            "name": name,
+            "date": date_str,
+            "months_before": months_before,
+            "coefficient": coef,
+            "se": se,
+            "pvalue": pval,
         })
 
-    
+    # ================================================================
+    # Save results
+    # ================================================================
     lines = [
-         * 70,
-        ,
-        ,
-        ,
-        ,
-         * 70,
-        ,
-        ,
-        ,
-        ,
-        ,
+        "=" * 70,
+        "PLACEBO TESTS — COLUMN C SPECIFICATION",
+        "Each regression includes the actual treatment indicator,",
+        "so that placebo coefficients are net of the real treatment effect.",
+        "HC3 robust standard errors throughout.",
+        "=" * 70,
+        "",
+        "H1: ECB rate hike (27 July 2022)",
+        f"  Panel: {', '.join(countries_h1)}",
+        f"  Sample: 2021-01-01 to 2024-12-31  N={len(dfh1)}",
+        "",
     ]
     for r in h1_results:
         sig = "***" if r["pvalue"] < 0.001 else "**" if r["pvalue"] < 0.01 else "*" if r["pvalue"] < 0.05 else ""
         lines.append(f"  {r['name']} ({r['date']}, -{r['months_before']}mo): "
-                      )
+                      f"coef={r['coefficient']:+.4f}  SE={r['se']:.4f}  p={r['pvalue']:.4f} {sig}")
 
     lines += [
-        ,
-        ,
-        ,
-        ,
-        ,
+        "",
+        "H2: Euro adoption (1 January 2023)",
+        f"  Panel: {', '.join(countries_h2)}",
+        f"  Sample: 2021-01-01 to 2024-12-31  N={len(dfh2)}",
+        "",
     ]
     for r in h2_results:
         sig = "***" if r["pvalue"] < 0.001 else "**" if r["pvalue"] < 0.01 else "*" if r["pvalue"] < 0.05 else ""
         lines.append(f"  {r['name']} ({r['date']}, -{r['months_before']}mo): "
-                      )
+                      f"coef={r['coefficient']:+.4f}  SE={r['se']:.4f}  p={r['pvalue']:.4f} {sig}")
 
     lines.append("")
     write_text("placebo_column_c_results.txt", "\n".join(lines) + "\n")
     print("\nSaved: placebo_column_c_results.txt")
 
-    
+    # ================================================================
+    # Get main DiD coefficients for the actual-event bar
+    # ================================================================
     h1_main = smf.ols(
-        
-        ,
+        "bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + "
+        "gdp_growth_quarterly + inflation_hicp + public_debt_gdp",
         data=dfh1,
     ).fit(cov_type="HC3")
     h1_did_coef = h1_main.params["croatia_ex_post"]
     h1_did_pval = h1_main.pvalues["croatia_ex_post"]
 
     h2_main = smf.ols(
-        
-        ,
+        "spread_vs_germany ~ is_croatia + post_euro_adoption + croatia_ex_post + "
+        "gdp_growth_quarterly + inflation_hicp + public_debt_gdp",
         data=dfh2,
     ).fit(cov_type="HC3")
     h2_did_coef = h2_main.params["croatia_ex_post"]
     h2_did_pval = h2_main.pvalues["croatia_ex_post"]
 
-    
+    # ================================================================
+    # Plot H1 placebo timeline
+    # ================================================================
     def _plot_placebo(results, did_coef, did_pval, actual_label, legend_actual, filename):
         fig, ax = plt.subplots(figsize=(10, 6))
         viz = []
         for r in results:
             viz.append({
-                : f"{r['name']}\n({r['date']})\n-{r['months_before']}mo",
-                : r["coefficient"],
-                : r["pvalue"],
-                : "Placebo",
+                "Test": f"{r['name']}\n({r['date']})\n-{r['months_before']}mo",
+                "coef": r["coefficient"],
+                "pval": r["pvalue"],
+                "Type": "Placebo",
             })
         viz.append({
-            : actual_label,
-            : did_coef,
-            : did_pval,
-            : "Actual",
+            "Test": actual_label,
+            "coef": did_coef,
+            "pval": did_pval,
+            "Type": "Actual",
         })
         pdf = pd.DataFrame(viz)
 
@@ -234,13 +257,13 @@ def run() -> None:
 
     _plot_placebo(
         h1_results, h1_did_coef, h1_did_pval,
-        , "Actual ECB Rate Hike",
-        ,
+        "Actual Event\n(27 Jul 2022)\n0mo", "Actual ECB Rate Hike",
+        "h1_placebo_tests.png",
     )
     _plot_placebo(
         h2_results, h2_did_coef, h2_did_pval,
-        , "Actual Euro Adoption",
-        ,
+        "Main Effect\n(2023-01-01)\nActual Event", "Actual Euro Adoption",
+        "h2_placebo_tests.png",
     )
 
 

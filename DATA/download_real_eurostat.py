@@ -1,4 +1,14 @@
+"""
+Download macroeconomic data from Eurostat JSON API.
 
+Datasets:
+  1. GDP growth (quarterly, q-o-q): namq_10_gdp
+     unit=CLV_PCH_PRE, s_adj=SCA, na_item=B1GQ
+  2. HICP inflation (monthly, y-o-y): prc_hicp_manr
+     coicop=CP00, unit=RCH_A
+  3. Public debt (annual, % GDP): gov_10dd_edpt1
+     na_item=GD, sector=S13, unit=PC_GDP
+"""
 
 from __future__ import annotations
 
@@ -21,8 +31,8 @@ RAW_DIR.mkdir(parents=True, exist_ok=True)
 
 COUNTRIES = ["HR", "SI", "SK", "LV", "LT", "FR", "DE"]
 COUNTRY_NAMES = {
-    : "Croatia", "SI": "Slovenia", "SK": "Slovakia",
-    : "Latvia", "LT": "Lithuania", "FR": "France", "DE": "Germany",
+    "HR": "Croatia", "SI": "Slovenia", "SK": "Slovakia",
+    "LV": "Latvia", "LT": "Lithuania", "FR": "France", "DE": "Germany",
 }
 
 BASE = "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data"
@@ -39,12 +49,12 @@ def _fetch_eurostat(dataset: str, params: dict, timeout: int = 30) -> dict | Non
 
 
 def _extract_time_values(data: dict) -> list[tuple[str, float]]:
-    
+    """Extract (time_label, value) pairs from a single-series Eurostat JSON response."""
     values = data.get("value", {})
     if not values:
         return []
 
-    
+    # Find the time dimension and its labels
     dim_ids = data["id"]
     time_idx = dim_ids.index("time") if "time" in dim_ids else None
     if time_idx is None:
@@ -56,7 +66,7 @@ def _extract_time_values(data: dict) -> list[tuple[str, float]]:
     results = []
     for flat_key, val in values.items():
         flat = int(flat_key)
-        
+        # Decode flat index to per-dimension indices
         indices = []
         remainder = flat
         for s in reversed(sizes):
@@ -72,6 +82,10 @@ def _extract_time_values(data: dict) -> list[tuple[str, float]]:
     return results
 
 
+# ============================================================
+# 1. GDP GROWTH (Quarterly, q-o-q, seasonally + calendar adjusted)
+# ============================================================
+
 def download_gdp() -> pd.DataFrame:
     print("\n[1/3] Downloading GDP Growth (quarterly, q-o-q) ...")
     all_rows: list[dict] = []
@@ -80,11 +94,11 @@ def download_gdp() -> pd.DataFrame:
         name = COUNTRY_NAMES[code]
         print(f"  {name} ...", end=" ")
         data = _fetch_eurostat("namq_10_gdp", {
-            : code,
-            : "CLV_PCH_PRE",
-            : "SCA",
-            : "B1GQ",
-            : "2015-Q1",
+            "geo": code,
+            "unit": "CLV_PCH_PRE",
+            "s_adj": "SCA",
+            "na_item": "B1GQ",
+            "sinceTimePeriod": "2015-Q1",
         })
         if data is None:
             print("FAILED")
@@ -92,14 +106,14 @@ def download_gdp() -> pd.DataFrame:
 
         pairs = _extract_time_values(data)
         for time_key, value in pairs:
-            
+            # time_key like "2015-Q1" -> date 2015-01-01
             year, q = time_key.split("-Q")
             month = int(q) * 3 - 2
             all_rows.append({
-                : pd.Timestamp(f"{year}-{month:02d}-01"),
-                : name,
-                : code,
-                : value,
+                "date": pd.Timestamp(f"{year}-{month:02d}-01"),
+                "country": name,
+                "country_code": code,
+                "gdp_growth_quarterly": value,
             })
         print(f"{len(pairs)} quarters")
         time.sleep(0.3)
@@ -110,6 +124,10 @@ def download_gdp() -> pd.DataFrame:
     return df
 
 
+# ============================================================
+# 2. HICP INFLATION (Monthly, annual rate of change)
+# ============================================================
+
 def download_inflation() -> pd.DataFrame:
     print("\n[2/3] Downloading HICP Inflation (monthly, y-o-y) ...")
     all_rows: list[dict] = []
@@ -118,10 +136,10 @@ def download_inflation() -> pd.DataFrame:
         name = COUNTRY_NAMES[code]
         print(f"  {name} ...", end=" ")
         data = _fetch_eurostat("prc_hicp_manr", {
-            : code,
-            : "CP00",
-            : "RCH_A",
-            : "2015-01",
+            "geo": code,
+            "coicop": "CP00",
+            "unit": "RCH_A",
+            "sinceTimePeriod": "2015-01",
         })
         if data is None:
             print("FAILED")
@@ -129,12 +147,12 @@ def download_inflation() -> pd.DataFrame:
 
         pairs = _extract_time_values(data)
         for time_key, value in pairs:
-            
+            # time_key like "2015-01" -> date 2015-01-01
             all_rows.append({
-                : pd.Timestamp(f"{time_key}-01"),
-                : name,
-                : code,
-                : value,
+                "date": pd.Timestamp(f"{time_key}-01"),
+                "country": name,
+                "country_code": code,
+                "inflation_hicp": value,
             })
         print(f"{len(pairs)} months")
         time.sleep(0.3)
@@ -144,6 +162,10 @@ def download_inflation() -> pd.DataFrame:
     df = pd.DataFrame(all_rows).sort_values(["country", "date"]).reset_index(drop=True)
     return df
 
+
+# ============================================================
+# 3. PUBLIC DEBT (Annual, % of GDP)
+# ============================================================
 
 def download_debt() -> pd.DataFrame:
     print("\n[3/3] Downloading Public Debt (annual, % GDP) ...")
@@ -155,11 +177,11 @@ def download_debt() -> pd.DataFrame:
         count = 0
         for year in range(2015, 2025):
             data = _fetch_eurostat("gov_10dd_edpt1", {
-                : code,
-                : "GD",
-                : "S13",
-                : "PC_GDP",
-                : str(year),
+                "geo": code,
+                "na_item": "GD",
+                "sector": "S13",
+                "unit": "PC_GDP",
+                "time": str(year),
             })
             if data is None:
                 continue
@@ -168,10 +190,10 @@ def download_debt() -> pd.DataFrame:
                 continue
             val = float(next(iter(values.values())))
             all_rows.append({
-                : pd.Timestamp(f"{year}-01-01"),
-                : name,
-                : code,
-                : val,
+                "date": pd.Timestamp(f"{year}-01-01"),
+                "country": name,
+                "country_code": code,
+                "public_debt_gdp": val,
             })
             count += 1
         print(f"{count} years")
@@ -182,6 +204,10 @@ def download_debt() -> pd.DataFrame:
     df = pd.DataFrame(all_rows).sort_values(["country", "date"]).reset_index(drop=True)
     return df
 
+
+# ============================================================
+# MAIN
+# ============================================================
 
 def main():
     print("=" * 70)

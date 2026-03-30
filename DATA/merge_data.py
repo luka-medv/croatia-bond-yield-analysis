@@ -1,4 +1,7 @@
-
+"""
+Merge all downloaded data into a single input_data.csv file
+Combines: bond yields, GDP growth, inflation, public debt
+"""
 
 import sys
 from pathlib import Path
@@ -16,14 +19,16 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 RAW_DIR = SCRIPT_DIR / "raw_data"
 
 def load_raw_data():
-    
+    """
+    Load all raw data files
+    """
     print("=" * 60)
     print("MERGING DATA INTO INPUT_DATA.CSV")
     print("=" * 60)
 
     print("\nLoading raw data files...")
 
-    
+    # Load datasets
     try:
         df_bonds = pd.read_csv(RAW_DIR / 'bond_yields.csv', parse_dates=['date'])
         print(f"  Bond yields: {len(df_bonds)} records")
@@ -56,28 +61,32 @@ def load_raw_data():
 
 
 def merge_datasets(df_bonds, df_gdp, df_inflation, df_debt):
-    
+    """
+    Merge all datasets on country and date
+    Handle different frequencies: daily (bonds), monthly (inflation), quarterly (GDP), annual (debt)
+    """
     print("\nMerging datasets...")
 
     if df_bonds.empty:
         print("  Cannot merge: bond yields data is missing!")
         return pd.DataFrame()
 
-    
+    # Start with bond yields (daily frequency) as base
     df_merged = df_bonds.copy()
 
-    
+    # Remove weekend observations (Saturday=5, Sunday=6)
+    # Weekend prices on Investing.com are typically copied Friday closes
     weekend_mask = df_merged['date'].dt.dayofweek >= 5
     n_weekends = weekend_mask.sum()
     df_merged = df_merged[~weekend_mask].copy()
     print(f"  Base dataset (bonds): {len(df_merged)} records ({n_weekends} weekend rows removed)")
 
-    
+    # Add year-month for merging with monthly/quarterly/annual data
     df_merged['year'] = df_merged['date'].dt.year
     df_merged['month'] = df_merged['date'].dt.month
     df_merged['quarter'] = df_merged['date'].dt.quarter
 
-    
+    # Merge GDP (quarterly) - forward fill within country
     if not df_gdp.empty:
         df_gdp['year'] = df_gdp['date'].dt.year
         df_gdp['quarter'] = df_gdp['date'].dt.quarter
@@ -89,7 +98,7 @@ def merge_datasets(df_bonds, df_gdp, df_inflation, df_debt):
         )
         print(f"  ✓ Merged GDP growth (quarterly)")
 
-    
+    # Merge inflation (monthly) - forward fill within country
     if not df_inflation.empty:
         df_inflation['year'] = df_inflation['date'].dt.year
         df_inflation['month'] = df_inflation['date'].dt.month
@@ -101,7 +110,7 @@ def merge_datasets(df_bonds, df_gdp, df_inflation, df_debt):
         )
         print(f"  ✓ Merged inflation (monthly)")
 
-    
+    # Merge public debt (annual) - forward fill within country
     if not df_debt.empty:
         df_debt['year'] = df_debt['date'].dt.year
 
@@ -112,48 +121,50 @@ def merge_datasets(df_bonds, df_gdp, df_inflation, df_debt):
         )
         print(f"  ✓ Merged public debt (annual)")
 
-    
+    # Forward fill macroeconomic variables within each country
     df_merged = df_merged.sort_values(['country', 'date'])
 
     for var in ['gdp_growth_quarterly', 'inflation_hicp', 'public_debt_gdp']:
         if var in df_merged.columns:
             df_merged[var] = df_merged.groupby('country')[var].ffill()
 
-    
+    # Create treatment group indicator (Croatia = 1, others = 0)
     df_merged['is_croatia'] = (df_merged['country'] == 'Croatia').astype(int)
 
-    
+    # Create small eurozone country indicator (Latvia excluded due to incomplete data)
     small_eurozone = ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania']
     df_merged['is_small_eurozone'] = df_merged['country'].isin(small_eurozone).astype(int)
 
-    
+    # Create post-euro adoption indicator (after 2023-01-01)
     df_merged['post_euro_adoption'] = (df_merged['date'] >= '2023-01-01').astype(int)
 
-    
+    # Create post-July 2022 rate hike indicator
     df_merged['post_july_2022_hike'] = (df_merged['date'] >= '2022-07-27').astype(int)
 
-    
+    # Create post-Feb 2023 rate hike indicator
     df_merged['post_feb_2023_hike'] = (df_merged['date'] >= '2023-02-02').astype(int)
 
-    
+    # Add time variables for regression
     df_merged['year_numeric'] = df_merged['year']
     df_merged['month_numeric'] = df_merged['month']
     df_merged['day_of_year'] = df_merged['date'].dt.dayofyear
 
-    
+    # Sort final dataset
     df_merged = df_merged.sort_values(['country', 'date'])
 
     return df_merged
 
 
 def add_additional_features(df):
-    
+    """
+    Add additional features for analysis
+    """
     print("\nAdding additional features...")
 
     if df.empty:
         return df
 
-    
+    # Calculate yield spread relative to Germany (benchmark)
     germany_yields = df[df['country'] == 'Germany'][['date', 'bond_yield_10y']].rename(
         columns={'bond_yield_10y': 'germany_yield'}
     )
@@ -164,13 +175,13 @@ def add_additional_features(df):
         df['spread_vs_germany'] = df['bond_yield_10y'] - df['germany_yield']
         print("  ✓ Added spread vs Germany")
 
-    
+    # Calculate yield changes
     df['yield_change_1d'] = df.groupby('country')['bond_yield_10y'].diff(1)
     df['yield_change_5d'] = df.groupby('country')['bond_yield_10y'].diff(5)
     df['yield_change_30d'] = df.groupby('country')['bond_yield_10y'].diff(30)
     print("  ✓ Added yield changes (1d, 5d, 30d)")
 
-    
+    # Calculate rolling statistics
     df['yield_ma_30d'] = df.groupby('country')['bond_yield_10y'].transform(
         lambda x: x.rolling(window=30, min_periods=1).mean()
     )
@@ -179,7 +190,7 @@ def add_additional_features(df):
     )
     print("  ✓ Added rolling statistics (30d MA, STD)")
 
-    
+    # Add DID interaction terms for key events
     df['croatia_x_post_july2022'] = df['is_croatia'] * df['post_july_2022_hike']
     df['croatia_x_post_feb2023'] = df['is_croatia'] * df['post_feb_2023_hike']
     df['croatia_x_post_euro'] = df['is_croatia'] * df['post_euro_adoption']
@@ -189,7 +200,9 @@ def add_additional_features(df):
 
 
 def generate_summary_statistics(df):
-    
+    """
+    Generate summary statistics
+    """
     print("\n" + "=" * 60)
     print("DATA SUMMARY")
     print("=" * 60)
@@ -223,21 +236,23 @@ def generate_summary_statistics(df):
 
 
 def main():
-    
-    
+    """
+    Main function to merge all data
+    """
+    # Load raw data
     df_bonds, df_gdp, df_inflation, df_debt = load_raw_data()
 
-    
+    # Merge datasets
     df_merged = merge_datasets(df_bonds, df_gdp, df_inflation, df_debt)
 
     if df_merged.empty:
         print("\nERROR: Merge failed - no data to save!")
         return None
 
-    
+    # Add additional features
     df_merged = add_additional_features(df_merged)
 
-    
+    # Save merged data
     output_path = SCRIPT_DIR / 'input_data.csv'
     df_merged.to_csv(output_path, index=False)
 
@@ -245,7 +260,7 @@ def main():
     print(f"MERGED DATA SAVED TO: {output_path.name}")
     print(f"{'='*60}")
 
-    
+    # Generate summary statistics
     generate_summary_statistics(df_merged)
 
     print("\n" + "=" * 60)

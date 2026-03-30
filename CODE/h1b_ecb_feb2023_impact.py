@@ -1,4 +1,13 @@
+"""
+Hypothesis 1b: Impact of ECB Monetary Policy Tightening (Feb 2, 2023) on Croatian Bond Yields
 
+Scope (per application):
+- Countries: Croatia (treatment) vs small Eurozone (Slovenia, Slovakia, Lithuania) and large EU (France, Germany)
+- Method: Difference-in-Differences with macro controls and country FE
+- Inference: Newey-West (HAC) standard errors (primary); HC3 also reported
+- Robustness: Excluding France and Germany
+- Data: Investing.com daily 10Y yields (2015-2024), Eurostat macro; Latvia excluded due to missing data
+"""
 
 from __future__ import annotations
 
@@ -24,7 +33,7 @@ from plot_utils import (
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:  
+    except Exception:  # pragma: no cover - defensive
         pass
 
 ROOT = Path(__file__).resolve().parent
@@ -52,12 +61,12 @@ def run() -> None:
     if missing:
         raise RuntimeError(f"Required indicators missing in data: {missing}")
 
-    
+    # Rename interaction term for table clarity
     dfh.rename(columns={'croatia_x_post_feb2023': 'croatia_ex_post'}, inplace=True)
 
     formula = (
-        
-        
+        "bond_yield_10y ~ C(country) + post_feb_2023_hike + "
+        "croatia_ex_post + gdp_growth_quarterly + inflation_hicp + public_debt_gdp"
     )
     model_hac = smf.ols(formula, data=dfh).fit(cov_type="HAC", cov_kwds={"maxlags": 5})
     model_hc3 = smf.ols(formula, data=dfh).fit(cov_type="HC3")
@@ -91,24 +100,24 @@ def run() -> None:
         ftest_str = "N/A"
 
     lines = [
-         * 80,
-        ,
-         * 80,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
+        "=" * 80,
+        "H1b: ECB FEB 2, 2023 RATE HIKE - DIFFERENCE-IN-DIFFERENCES RESULTS",
+        "=" * 80,
+        "",
+        "Panel: Croatia (treatment) vs Slovenia, Slovakia, Lithuania, France, Germany",
+        "Data source: Investing.com daily 10Y yields (2015-2024); Eurostat macro",
+        "Latvia excluded due to incomplete data on Investing.com.",
+        "",
+        "MAIN SPECIFICATION (country FE + controls)",
+        f"  HAC (Newey-West, maxlags=5) DiD coef: {did_hac[0]:.4f}  SE: {did_hac[1]:.4f}  p: {did_hac[2]:.4f}",
+        f"  HC3 robust DiD coef: {did_hc3[0]:.4f}  SE: {did_hc3[1]:.4f}  p: {did_hc3[2]:.4f}",
+        "",
+        "ROBUSTNESS (exclude France and Germany)",
+        f"  HAC DiD coef: {r_did_hac[0]:.4f}  SE: {r_did_hac[1]:.4f}  p: {r_did_hac[2]:.4f}",
+        "",
+        f"CONTROLS JOINT SIGNIFICANCE (HAC model): {ftest_str}",
+        "",
+        "VIF (controls)",
     ]
     for _, row in vif.iterrows():
         try:
@@ -140,7 +149,7 @@ def run() -> None:
     ax.text(
         1.05,
         (cy[1] + counterfactual) / 2,
-        ,
+        f"DiD (HAC):\n{did_hac[0]:.4f}pp",
         fontsize=11,
         color="green" if did_hac[0] < 0 else "red",
         bbox=dict(boxstyle="round", facecolor="white", edgecolor="green" if did_hac[0] < 0 else "red", linewidth=2),

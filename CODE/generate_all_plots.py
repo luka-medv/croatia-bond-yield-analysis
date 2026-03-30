@@ -1,4 +1,6 @@
-
+"""
+Regenerate ALL plots with professional colors and collision-free text
+"""
 
 import sys
 from pathlib import Path
@@ -23,7 +25,7 @@ print("=" * 80)
 print("REGENERATING ALL PLOTS WITH PROFESSIONAL COLORS")
 print("=" * 80)
 
-
+# Load data
 print("\n[1/N] Loading data...")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,26 +36,26 @@ print(f"[info] Loaded {len(df):,} observations")
 KEY_EVENT_LINES = [
     (
         pd.to_datetime('2022-07-27'),
-        ,
-        ,
+        'ECB Rate Hike\n27 Jul 2022',
+        '#9A3412',
         {'text_offset_days': -45, 'ha': 'right'}
     ),
     (
         pd.to_datetime('2023-01-01'),
-        ,
-        ,
+        'Euro Adoption\n1 Jan 2023',
+        '#0E7490',
         {'text_offset_days': 45, 'ha': 'left'}
     ),
 ]
 
-
+# Color scheme
 colors = {
-    : '#D2691E',
-    : '#1E3A8A',
-    : '#15803D',
-    : '#7E22CE',
-    : '#92400E',
-    : '#374151'
+    'Croatia': '#D2691E',
+    'Slovenia': '#1E3A8A',
+    'Slovakia': '#15803D',
+    'Lithuania': '#7E22CE',
+    'France': '#92400E',
+    'Germany': '#374151'
 }
 all_countries = ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania', 'France', 'Germany']
 
@@ -76,7 +78,7 @@ def _render_event_labels(
     anchor_frac: float = 0.88,
     max_frac: float = 1.08,
 ):
-    
+    """Render vertical event markers with staggered, non-overlapping labels."""
     if not events:
         return
 
@@ -111,19 +113,19 @@ def _render_event_labels(
         x_offset_days = options.get('text_offset_days', 0)
         ha = options.get('ha', 'center')
         bbox_kwargs = {
-            : 'round,pad=0.35',
-            : 'white',
-            : color,
-            : 1.15,
-            : 0.97,
+            'boxstyle': 'round,pad=0.35',
+            'facecolor': 'white',
+            'edgecolor': color,
+            'linewidth': 1.15,
+            'alpha': 0.97,
         }
         bbox_kwargs.update(options.get('bbox', {}))
         arrowprops = {
-            : '-|>',
-            : color,
-            : 1.0,
-            : 0,
-            : 6,
+            'arrowstyle': '-|>',
+            'color': color,
+            'lw': 1.0,
+            'shrinkA': 0,
+            'shrinkB': 6,
         }
         arrowprops.update(options.get('arrowprops', {}))
 
@@ -146,7 +148,9 @@ def _render_event_labels(
 def annotate_vertical_events(ax, events=KEY_EVENT_LINES):
     _render_event_labels(ax, events)
 
-
+# ============================================================ 
+# PLOT 1: All Countries Yields
+# ============================================================ 
 print("\n[2/N] Creating all countries yields plot...")
 
 fig, ax = make_subplots()
@@ -167,6 +171,9 @@ ax.spines['right'].set_visible(False)
 save_with_layout(fig, '01_all_countries_yields.png')
 
 
+# ============================================================ 
+# PLOT 2: Croatia vs Small Eurozone
+# ============================================================ 
 print("\n[3/N] Creating Croatia vs small eurozone comparison...")
 
 fig, ax = make_subplots()
@@ -189,6 +196,9 @@ ax.spines['right'].set_visible(False)
 save_with_layout(fig, '02_croatia_vs_small_eurozone.png')
 
 
+# ============================================================ 
+# PLOT 3: Spreads vs Germany
+# ============================================================ 
 print("\n[4/N] Creating spreads vs Germany plot...")
 
 fig, ax = make_subplots()
@@ -212,6 +222,9 @@ ax.spines['right'].set_visible(False)
 save_with_layout(fig, '03_spreads_vs_germany.png')
 
 
+# ============================================================ 
+# PLOT 4: Correlation Heatmap
+# ============================================================ 
 print("\n[5/N] Creating correlation heatmap...")
 
 pivot_df = df.pivot_table(
@@ -232,6 +245,9 @@ plt.setp(ax.get_yticklabels(), fontsize=11, fontweight='bold', rotation=0)
 save_with_layout(fig, '05_correlation_heatmap.png')
 
 
+# ============================================================ 
+# PLOT 5: Volatility Comparison
+# ============================================================ 
 print("\n[6/N] Creating volatility comparison plot...")
 fig, ax = make_subplots()
 for country in all_countries:
@@ -250,6 +266,9 @@ ax.spines['right'].set_visible(False)
 save_with_layout(fig, '06_volatility_comparison.png')
 
 
+# ============================================================ 
+# PLOT 6: Croatia Euro Timeline
+# ============================================================ 
 print("\n[7/N] Creating Croatia euro adoption timeline...")
 
 croatia_data = df[df['country'] == 'Croatia'].sort_values('date')
@@ -345,6 +364,9 @@ fig.autofmt_xdate()
 save_with_layout(fig, '09_croatia_euro_timeline.png')
 
 
+# ============================================================ 
+# Additional Plots
+# ============================================================ 
 print("\n[8/N] Creating additional plots...")
 
 fig, ax = plt.subplots(figsize=(12, 7))
@@ -392,20 +414,23 @@ fig.autofmt_xdate()
 save_with_layout(fig, '12_public_debt_comparison.png')
 
 
+# ============================================================ 
+# Inflation Plot
+# ============================================================ 
 print("\n[9/N] Creating comprehensive inflation timeline visualization...")
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 12))
 
-
+# PLOT 1: Full timeline (2015-2024)
 for country in all_countries:
     country_data = df[df['country'] == country].sort_values('date')
     linewidth = 3.5 if country == 'Croatia' else 2.5
     ax1.plot(country_data['date'], country_data['inflation_hicp'],
             label=country, linewidth=linewidth, color=colors[country], alpha=0.95)
 key_events_inflation = {
-    : 'COVID-19\nPandemic',
-    : 'Russia-Ukraine\nWar',
-    : 'ECB First\nRate Hike',
-    : 'Croatia\nEuro Adoption'
+    '2020-03-01': 'COVID-19\nPandemic',
+    '2022-02-24': 'Russia-Ukraine\nWar',
+    '2022-07-27': 'ECB First\nRate Hike',
+    '2023-01-01': 'Croatia\nEuro Adoption'
 }
 event_positions = [0.95, 0.82, 0.70, 0.88]
 for i, (date_str, label) in enumerate(key_events_inflation.items()):
@@ -421,7 +446,7 @@ ax1.legend(loc='upper left', framealpha=0.95)
 ax1.grid(True, alpha=0.3, linewidth=0.6)
 ax1.axhline(2, color='#374151', linestyle=':', linewidth=1.5, alpha=0.6, label='ECB Target (2%)')
 
-
+# PLOT 2: Focus on 2021-2024 (inflation shock period)
 df_recent = df[df['date'] >= '2021-01-01']
 for country in all_countries:
     country_data = df_recent[df_recent['country'] == country].sort_values('date')
@@ -464,9 +489,12 @@ plt.tight_layout()
 save_with_layout(fig, '15_inflation_complete_timeline.png')
 
 
+# ============================================================ 
+# DiD Plots
+# ============================================================ 
 print("\n[10/N] Creating DiD plots...")
 
-
+# H1
 df_h1 = df[
     (df['country'].isin(['Croatia', 'Slovenia', 'Slovakia', 'Lithuania'])) &
     (df['date'] >= '2021-01-01') &
@@ -477,8 +505,8 @@ df_h1['is_croatia'] = (df_h1['country'] == 'Croatia').astype(int)
 df_h1['croatia_ex_post'] = df_h1['is_croatia'] * df_h1['post_july_2022_hike']
 
 model4 = smf.ols(
-    
-    ,
+    'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+    'gdp_growth_quarterly + inflation_hicp + public_debt_gdp',
     data=df_h1
 ).fit(cov_type='HC3')
 did_coef = model4.params['croatia_ex_post']
@@ -548,7 +576,7 @@ line_counterfactual, = ax.plot(
 
 effect_color = 'green' if did_coef < 0 else 'red'
 ax.annotate(
-    ,
+    '',
     xy=(1, croatia_yields[1]),
     xytext=(1, counterfactual),
     arrowprops=dict(arrowstyle='<->', color=effect_color, lw=3),
@@ -556,7 +584,7 @@ ax.annotate(
 ax.text(
     1.02,
     (croatia_yields[1] + counterfactual) / 2,
-    ,
+    f'DiD Effect:\n{did_coef:.4f}pp',
     fontsize=11,
     color=effect_color,
     ha='left',
@@ -566,7 +594,7 @@ ax.text(
 
 ax.set_xticks([0, 1])
 ax.set_xticklabels(['Pre-Hike\n(Before July 27, 2022)',
-                    ], fontsize=11)
+                    'Post-Hike\n(After July 27, 2022)'], fontsize=11)
 ax.set_ylabel('Average 10-Year Bond Yield (%)', fontsize=12)
 
 ci_handles = [

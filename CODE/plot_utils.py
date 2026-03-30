@@ -1,4 +1,9 @@
+"""
+Shared plotting utilities used by analysis and data scripts.
 
+Provides consistent styling, subplot creation, legend placement,
+dual-outline significance markers, and bar-label helpers.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ from matplotlib.patches import FancyBboxPatch
 from matplotlib.container import BarContainer
 
 
+# ── house style ──────────────────────────────────────────────────────
 _STYLE_APPLIED = False
 
 def _apply_style() -> None:
@@ -17,28 +23,29 @@ def _apply_style() -> None:
     if _STYLE_APPLIED:
         return
     plt.rcParams.update({
-        : "white",
-        : "white",
-        : True,
-        : "y",
-        : 0.30,
-        : ":",
-        : 0.8,
-        : 11,
-        : 14,
-        : 13,
-        : 11,
-        : 11,
-        : 11,
-        : 0.95,
-        : 100,
-        : 300,
-        : "tight",
-        : 0.15,
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+        "axes.grid": True,
+        "axes.grid.axis": "y",
+        "grid.alpha": 0.30,
+        "grid.linestyle": ":",
+        "grid.linewidth": 0.8,
+        "font.size": 11,
+        "axes.titlesize": 14,
+        "axes.labelsize": 13,
+        "xtick.labelsize": 11,
+        "ytick.labelsize": 11,
+        "legend.fontsize": 11,
+        "legend.framealpha": 0.95,
+        "figure.dpi": 100,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.15,
     })
     _STYLE_APPLIED = True
 
 
+# ── subplot factory ──────────────────────────────────────────────────
 def make_subplots(
     figsize: tuple[float, float] = (10, 6),
     nrows: int = 1,
@@ -46,7 +53,11 @@ def make_subplots(
     constrained: bool = False,
     **kwargs,
 ):
-    
+    """Create a figure and axes with the house style applied.
+
+    Returns ``(fig, ax)`` when *nrows* and *ncols* are both 1, otherwise
+    ``(fig, axes)`` (the raw array from ``plt.subplots``).
+    """
     _apply_style()
     layout = "constrained" if constrained else "tight"
     fig, axes = plt.subplots(
@@ -58,6 +69,7 @@ def make_subplots(
     return fig, axes
 
 
+# ── legend helper ────────────────────────────────────────────────────
 def place_legend(
     ax,
     *,
@@ -66,7 +78,11 @@ def place_legend(
     ncol: int = 1,
     **kwargs,
 ) -> None:
-    
+    """Place a legend with sensible defaults.
+
+    When *anchor* is given the legend is placed outside the axes using
+    ``bbox_to_anchor``.
+    """
     kw: dict[str, Any] = dict(
         loc=location,
         ncol=ncol,
@@ -79,15 +95,17 @@ def place_legend(
     ax.legend(**kw)
 
 
+# ── annotation helper ───────────────────────────────────────────────
 def add_annotation(ax, text: str, xy, **kwargs) -> None:
-    
+    """Thin wrapper around ``ax.annotate`` with default font styling."""
     defaults = dict(fontsize=10, fontweight="bold")
     defaults.update(kwargs)
     ax.annotate(text, xy=xy, **defaults)
 
 
+# ── significance markers ────────────────────────────────────────────
 def add_dual_outline(ax, bar, *, color: str = "#d62728", linewidth: float = 2.5) -> None:
-    
+    """Draw a coloured outline around a bar to mark statistical significance."""
     rect = bar.get_bbox()
     x0, y0 = rect.x0, rect.y0
     w = rect.width
@@ -124,7 +142,7 @@ def label_bars_with_significance(
     fmt: str = "{:.4f}",
     fontsize: int = 10,
 ) -> None:
-    
+    """Add coefficient labels with significance stars above / below each bar."""
     for bar, pval in zip(bars, pvalues):
         height = bar.get_height()
         stars = _sig_stars(pval)
@@ -145,8 +163,13 @@ def label_bars_with_significance(
         )
 
 
+# ── text adjustment ─────────────────────────────────────────────────
 def adjust_text_labels(texts, **kwargs) -> None:
-    
+    """Wrapper around adjustText.adjust_text with sane defaults.
+
+    Falls back to a no-op if adjustText is not installed so scripts
+    never crash just because of label adjustment.
+    """
     try:
         from adjustText import adjust_text
         defaults = dict(
@@ -161,10 +184,10 @@ def adjust_text_labels(texts, **kwargs) -> None:
 
 
 __all__ = [
-    ,
-    ,
-    ,
-    ,
-    ,
-    ,
+    "make_subplots",
+    "place_legend",
+    "add_annotation",
+    "add_dual_outline",
+    "label_bars_with_significance",
+    "adjust_text_labels",
 ]

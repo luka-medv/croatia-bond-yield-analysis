@@ -1,4 +1,7 @@
-
+"""
+H1 Appendix: HAC (Newey-West) standard errors, VIF, and F-test
+- Re-run H1 main full specification with HAC and report diagnostics.
+"""
 
 import sys
 from pathlib import Path
@@ -29,8 +32,8 @@ def run():
     dfh.rename(columns={'croatia_x_post_july2022': 'croatia_ex_post'}, inplace=True)
 
     formula = (
-        
-        
+        'bond_yield_10y ~ C(country) + post_july_2022_hike + croatia_ex_post + '
+        'gdp_growth_quarterly + inflation_hicp + public_debt_gdp'
     )
     model_hac = smf.ols(formula, data=dfh).fit(cov_type='HAC', cov_kwds={'maxlags': 5})
 
@@ -46,16 +49,16 @@ def run():
     vif = build_vif_table(dfh, ['gdp_growth_quarterly', 'inflation_hicp', 'public_debt_gdp'])
 
     lines = [
-         * 80,
-        ,
-         * 80,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
-        ,
+        '=' * 80,
+        'H1 Appendix: HAC (Newey-West) SE, VIF and F-test',
+        '=' * 80,
+        '',
+        'HAC (maxlags=5) - Main DiD coef (country FE + controls)',
+        f"  {coef}: coef={did[0]:.4f}, SE={did[1]:.4f}, p={did[2]:.4f}",
+        '',
+        f'Controls joint significance: {fstr}',
+        '',
+        'VIF (controls):',
     ]
     for _, row in vif.iterrows():
         try:

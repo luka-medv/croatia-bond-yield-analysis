@@ -1,4 +1,6 @@
-
+"""
+Regenerate all H1 and H2 plots with professional colors and collision-free text placement
+"""
 
 import sys
 from pathlib import Path
@@ -52,7 +54,7 @@ print("=" * 80)
 print("REGENERATING PROFESSIONAL PLOTS FOR H1 AND H2")
 print("=" * 80)
 
-
+# Load existing regression results to get coefficients
 print("\n[1/11] Loading H1 regression results...")
 with open(REPORTS_DIR / 'h1_regression_results.txt', 'r', encoding='utf-8') as f:
     h1_text = f.read()
@@ -83,29 +85,29 @@ def extract_placebo_series(text, *, actual_label, actual_test_label):
             if coef_match and pval_match:
                 _, date, months = header_match.groups()
                 rows.append({
-                    : f"Placebo {header_match.group(1)}\n({date})\n-{months}mo",
-                    : float(coef_match.group(1)),
-                    : float(pval_match.group(1)),
-                    : 'Placebo',
+                    'Test': f"Placebo {header_match.group(1)}\n({date})\n-{months}mo",
+                    'coef': float(coef_match.group(1)),
+                    'pval': float(pval_match.group(1)),
+                    'Type': 'Placebo',
                 })
     main_match = re.search(
-        ,
+        rf'{re.escape(actual_label)}.*?DiD Coefficient:\s*([-\d.]+)\s*[\r\n]+P-value:\s*([\d.]+)',
         text,
         re.IGNORECASE | re.DOTALL,
     )
     if main_match:
         rows.append({
-            : actual_test_label,
-            : float(main_match.group(1)),
-            : float(main_match.group(2)),
-            : 'Actual',
+            'Test': actual_test_label,
+            'coef': float(main_match.group(1)),
+            'pval': float(main_match.group(2)),
+            'Type': 'Actual',
         })
     return rows
 
 def extract_robustness(text, mapping):
     pattern = re.compile(
-        
-        ,
+        r'(Main specification \(all controls\)|Excluding [A-Za-z]+|Shorter window \(2022-2024\))'
+        r':\s*([-\d.]+)\s*\(p=([\d.]+)\)',
         re.IGNORECASE
     )
     entries = {}
@@ -149,11 +151,11 @@ h2_robust_mapping = [
 h1_robust_entries = extract_robustness(h1_text, h1_robust_mapping)
 h2_robust_entries = extract_robustness(h2_text, h2_robust_mapping)
 
-
+# Load data
 print("\n[2/11] Loading analysis data...")
 df = pd.read_csv(DATA_DIR / 'input_data.csv', parse_dates=['date'])
 
-
+# Filter for H1
 df_h1 = df[
     (df['country'].isin(['Croatia', 'Slovenia', 'Slovakia', 'Lithuania'])) &
     (df['date'] >= '2021-01-01') &
@@ -161,7 +163,7 @@ df_h1 = df[
 ].copy()
 df_h1['period'] = df_h1['post_july_2022_hike'].map({0: 'Pre-Hike', 1: 'Post-Hike'})
 
-
+# Filter for H2
 df_h2 = df[
     (df['country'].isin(['Croatia', 'Slovenia', 'Slovakia', 'Lithuania'])) &
     (df['date'] >= '2021-01-01') &
@@ -188,35 +190,35 @@ for country in sorted(df['country'].unique()):
         missing_pct = coverage_pct = 0.0
         sample_range = ""
     coverage_rows.append({
-        : country,
-        : total,
-        : missing_pct,
-        : coverage_pct,
-        : sample_range
+        'Country': country,
+        'Observations': total,
+        'Missing (%)': missing_pct,
+        'Coverage (%)': coverage_pct,
+        'Sample Range': sample_range
     })
 
 coverage_df = pd.DataFrame(coverage_rows)
 coverage_df[['Missing (%)', 'Coverage (%)']] = coverage_df[['Missing (%)', 'Coverage (%)']].fillna(0.0)
-
+# Match thesis booktabs formatting and escaped percent symbols
 coverage_df = coverage_df.rename(columns={
-    : 'Missing (\\%)',
-    : 'Coverage (\\%)',
+    'Missing (%)': 'Missing (\\%)',
+    'Coverage (%)': 'Coverage (\\%)',
 })
 coverage_formatters = {
-    : lambda x: f"{int(x):,}",
-    : lambda x: f"{x:.1f}~\\%",
-    : lambda x: f"{x:.1f}~\\%"
+    'Observations': lambda x: f"{int(x):,}",
+    'Missing (\\%)': lambda x: f"{x:.1f}~\\%",
+    'Coverage (\\%)': lambda x: f"{x:.1f}~\\%"
 }
 export_table(
     coverage_df,
-    ,
+    'data_coverage_table.tex',
     index=False,
     column_format='lrrrl',
     formatters=coverage_formatters,
     booktabs=True,
 )
 
-
+# Full-sample descriptive statistics for bond yields (feeds thesis summary table)
 def _format_two_decimals(value: float) -> str:
     return f"{Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
 
@@ -236,16 +238,16 @@ descriptive_stats_df = (
 )
 
 descriptive_formatters = {
-    : _format_two_decimals,
-    : _format_two_decimals,
-    : _format_two_decimals,
-    : _format_two_decimals,
-    : _format_two_decimals,
+    'Mean': _format_two_decimals,
+    'Median': _format_two_decimals,
+    'Std. Dev.': _format_two_decimals,
+    'Min': _format_two_decimals,
+    'Max': _format_two_decimals,
 }
 
 export_table(
     descriptive_stats_df,
-    ,
+    'descriptive_statistics_table.tex',
     index=False,
     column_format='lrrrrr',
     formatters=descriptive_formatters,
@@ -256,11 +258,11 @@ macro_summary_df = (
     df.groupby('country')
       .agg(
           **{
-              : ('bond_yield_10y', 'mean'),
-              : ('bond_yield_10y', 'std'),
-              : ('gdp_growth_quarterly', 'mean'),
-              : ('inflation_hicp', 'mean'),
-              : ('public_debt_gdp', 'mean')
+              'Bond Yield Mean': ('bond_yield_10y', 'mean'),
+              'Bond Yield SD': ('bond_yield_10y', 'std'),
+              'GDP Growth Mean': ('gdp_growth_quarterly', 'mean'),
+              'Inflation Mean': ('inflation_hicp', 'mean'),
+              'Public Debt Mean': ('public_debt_gdp', 'mean')
           }
       )
       .reset_index()
@@ -268,7 +270,7 @@ macro_summary_df = (
       .fillna(0.0)
 )
 
-
+# H1 descriptive statistics table
 h1_stats_df = (
     df_h1.groupby(['country', 'period'])['bond_yield_10y']
         .agg(Mean='mean', StdDev='std', Min='min', Max='max', N='count')
@@ -277,22 +279,22 @@ h1_stats_df = (
 )
 
 h1_formatters = {
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{int(x):,}"
+    'Mean': lambda x: f"{x:.4f}",
+    'Std Dev': lambda x: f"{x:.4f}",
+    'Min': lambda x: f"{x:.4f}",
+    'Max': lambda x: f"{x:.4f}",
+    'N': lambda x: f"{int(x):,}"
 }
 
 export_table(
     h1_stats_df,
-    ,
+    'h1_descriptive_statistics.tex',
     index=False,
     column_format='llrrrrr',
     formatters=h1_formatters
 )
 
-
+# H2 spread statistics table
 h2_stats_df = (
     df_h2.groupby(['country', 'period'])['spread_vs_germany']
         .agg(Mean='mean', StdDev='std', Min='min', Max='max', N='count')
@@ -301,38 +303,40 @@ h2_stats_df = (
 )
 
 h2_formatters = {
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{x:.4f}",
-    : lambda x: f"{int(x):,}"
+    'Mean': lambda x: f"{x:.4f}",
+    'Std Dev': lambda x: f"{x:.4f}",
+    'Min': lambda x: f"{x:.4f}",
+    'Max': lambda x: f"{x:.4f}",
+    'N': lambda x: f"{int(x):,}"
 }
 
 export_table(
     h2_stats_df,
-    ,
+    'h2_spread_statistics.tex',
     index=False,
     column_format='llrrrrr',
     formatters=h2_formatters
 )
 
 macro_formatters = {
-    : lambda x: f"{x:.2f}",
-    : lambda x: f"{x:.2f}",
-    : lambda x: f"{x:.2f}",
-    : lambda x: f"{x:.2f}",
-    : lambda x: f"{x:.1f}"
+    'Bond Yield Mean': lambda x: f"{x:.2f}",
+    'Bond Yield SD': lambda x: f"{x:.2f}",
+    'GDP Growth Mean': lambda x: f"{x:.2f}",
+    'Inflation Mean': lambda x: f"{x:.2f}",
+    'Public Debt Mean': lambda x: f"{x:.1f}"
 }
 
 export_table(
     macro_summary_df,
-    ,
+    'macro_summary_table.tex',
     index=False,
     column_format='lrrrrr',
     formatters=macro_formatters
 )
 
-
+# ============================================================ 
+# H1 VISUALIZATION 1: Main DiD Plot
+# ============================================================ 
 print("\n[4/11] Creating H1 main DiD visualization...")
 
 avg_yields = (
@@ -409,14 +413,15 @@ line_counterfactual, = ax.plot(
 ax.annotate('', xy=(1, croatia_yields[1]), xytext=(1, counterfactual),
             arrowprops=dict(arrowstyle='<->', color='green' if h1_did_coef < 0 else 'red', lw=3))
 ax.text(1.05, (croatia_yields[1] + counterfactual) / 2, 
-        , fontsize=11, color='green' if h1_did_coef < 0 else 'red',
+        f'DiD Effect:\n{h1_did_coef:.4f}pp', fontsize=11, color='green' if h1_did_coef < 0 else 'red',
         bbox=dict(boxstyle='round', facecolor='white',
                  edgecolor='green' if h1_did_coef < 0 else 'red', linewidth=2))
 
 
+
 ax.set_xticks([0, 1])
 ax.set_xticklabels(['Pre-Hike\n(Before July 27, 2022)',
-                    ], fontsize=12, fontweight='bold')
+                    'Post-Hike\n(After July 27, 2022)'], fontsize=12, fontweight='bold')
 ax.set_ylabel('Average 10-Year Bond Yield (%)', fontsize=13, fontweight='bold')
 
 ci_handles = [
@@ -427,20 +432,22 @@ legend_handles = [line_croatia, line_control, line_counterfactual, *ci_handles]
 ax.legend(handles=legend_handles, loc='best', framealpha=0.9)
 export_figure(fig, 'h1_did_visualization.png', dpi=300, facecolor='white')
 
-
+# ============================================================ 
+# H1 VISUALIZATION 2: Robustness Checks
+# ============================================================ 
 print("\n[5/11] Creating H1 robustness checks visualization...")
 
 if all(entry['coef'] is not None for entry in h1_robust_entries):
     df_rob = pd.DataFrame({
-        : [entry['label'] for entry in h1_robust_entries],
-        : [entry['coef'] for entry in h1_robust_entries],
-        : [entry['pval'] for entry in h1_robust_entries],
+        'Specification': [entry['label'] for entry in h1_robust_entries],
+        'DiD_Coefficient': [entry['coef'] for entry in h1_robust_entries],
+        'P_Value': [entry['pval'] for entry in h1_robust_entries],
     })
 else:
     df_rob = pd.DataFrame({
-        : ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania'],
-        : [-0.4403, -0.6023, -0.4379, -0.4023],
-        : [0.0000, 0.0000, 0.0000, 0.0000],
+        'Specification': ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania'],
+        'DiD_Coefficient': [-0.4403, -0.6023, -0.4379, -0.4023],
+        'P_Value': [0.0000, 0.0000, 0.0000, 0.0000],
     })
 
 df_rob = df_rob.sort_values('DiD_Coefficient', ascending=False).reset_index(drop=True)
@@ -479,7 +486,9 @@ ax.legend(handles=legend_elements, loc='best', fontsize=11, framealpha=0.95)
 
 export_figure(fig, 'h1_robustness_checks.png', dpi=300, facecolor='white')
 
-
+# ============================================================ 
+# H1 VISUALIZATION 3: Placebo Tests Timeline
+# ============================================================ 
 print("\n[6/11] Creating H1 placebo tests timeline...")
 
 fig, ax = make_subplots()
@@ -527,8 +536,9 @@ legend_elements = [
 ax.legend(handles=legend_elements, loc='upper right', frameon=True, framealpha=0.9)
 
 export_figure(fig, 'h1_placebo_tests.png', dpi=300, facecolor='white')
-
-
+# ============================================================ 
+# H2 VISUALIZATION 1: Main DiD Plot (Spreads)
+# ============================================================ 
 print("\n[7/11] Creating H2 main DiD visualization...")
 
 avg_spreads = df_h2.groupby(['is_croatia', 'period'])['spread_vs_germany'].mean().reset_index()
@@ -555,7 +565,7 @@ ax.plot([0, 1], [croatia_spreads[0], counterfactual], linestyle='--', label='Cro
 
 effect_color = 'green' if h2_did_coef < 0 else 'red'
 ax.annotate(
-    ,
+    '',
     xy=(1, croatia_spreads[1]),
     xytext=(1, counterfactual),
     arrowprops=dict(arrowstyle='<->', color=effect_color, lw=3),
@@ -563,7 +573,7 @@ ax.annotate(
 ax.text(
     1.02,
     (croatia_spreads[1] + counterfactual) / 2,
-    ,
+    f'DiD Effect:\n{h2_did_coef:.4f}pp',
     fontsize=11,
     color=effect_color,
     ha='left',
@@ -573,23 +583,25 @@ ax.text(
 
 ax.set_xticks([0, 1])
 ax.set_xticklabels(['Pre-Euro\n(Before Jan 1, 2023)',
-                    ], fontsize=12, fontweight='bold')
+                    'Post-Euro\n(After Jan 1, 2023)'], fontsize=12, fontweight='bold')
 ax.set_ylabel('Spread vs Germany (percentage points)', fontsize=13, fontweight='bold')
 
 ax.legend(loc='best')
 export_figure(fig, 'h2_spread_convergence_did.png', dpi=300, facecolor='white')
 
-
+# ============================================================ 
+# H2 VISUALIZATION 2: Spread Time Series
+# ============================================================ 
 print("\n[8/11] Creating H2 spread time series...")
 
 fig, ax = make_subplots()
 
-
+# Plot each country with distinct tasteful colors
 for country in ['Croatia', 'Slovenia', 'Slovakia', 'Lithuania']:
     country_data = df_h2[df_h2['country'] == country].sort_values('date')
     ax.plot(country_data['date'], country_data['spread_vs_germany'], label=country)
 
-
+# Euro adoption event
 ax.axvline(pd.to_datetime('2023-01-01'), linestyle='--', label='Croatia Euro Adoption (Jan 1, 2023)')
 ax.axhline(0, linestyle='-', label='Zero Spread (Reference)')
 
@@ -599,20 +611,22 @@ ax.set_ylabel('Spread vs Germany (percentage points)', fontsize=13, fontweight='
 ax.legend(loc='best')
 export_figure(fig, 'h2_spread_timeseries.png', dpi=300, facecolor='white')
 
-
+# ============================================================ 
+# H2 VISUALIZATION 3: Robustness Checks
+# ============================================================ 
 print("\n[9/11] Creating H2 robustness checks...")
 
 if all(entry['coef'] is not None for entry in h2_robust_entries):
     df_rob_h2 = pd.DataFrame({
-        : [entry['label'] for entry in h2_robust_entries],
-        : [entry['coef'] for entry in h2_robust_entries],
-        : [entry['pval'] for entry in h2_robust_entries],
+        'Specification': [entry['label'] for entry in h2_robust_entries],
+        'DiD_Coefficient': [entry['coef'] for entry in h2_robust_entries],
+        'P_Value': [entry['pval'] for entry in h2_robust_entries],
     })
 else:
     df_rob_h2 = pd.DataFrame({
-        : ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania', 'Short Window\n(2022-2024)'],
-        : [-0.6193, -0.9601, -0.5408, -0.2721, -0.6808],
-        : [0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
+        'Specification': ['Main\n(All Controls)', 'Excl.\nSlovenia', 'Excl.\nSlovakia', 'Excl.\nLithuania', 'Short Window\n(2022-2024)'],
+        'DiD_Coefficient': [-0.6193, -0.9601, -0.5408, -0.2721, -0.6808],
+        'P_Value': [0.0000, 0.0000, 0.0000, 0.0000, 0.0000],
     })
 
 df_rob_h2 = df_rob_h2.sort_values('DiD_Coefficient', ascending=False).reset_index(drop=True)

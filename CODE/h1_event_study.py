@@ -1,4 +1,10 @@
-
+"""
+H1 Event Study: Immediate yield reactions around ECB events
+- Events: 2022-07-27 (first hike), 2023-02-02 (second hike)
+- Windows: +/-5 days and +/-3 days
+- Method: Abnormal yield = yield - 30d pre-event average; one-sample t-test vs 0
+- Countries: Croatia, Slovenia, Slovakia, Lithuania, France, Germany
+"""
 
 import pandas as pd
 import numpy as np
@@ -34,7 +40,7 @@ def abnormal_series(df: pd.DataFrame, country: str, event_date: pd.Timestamp):
     if pre_window.empty:
         return None
     baseline = pre_window['bond_yield_10y'].mean()
-    
+    # Build window +/-5 and +/-3
     s5 = c.loc[(c.index >= event_date - pd.Timedelta(days=5)) & (c.index <= event_date + pd.Timedelta(days=5))]['bond_yield_10y'] - baseline
     s3 = c.loc[(c.index >= event_date - pd.Timedelta(days=3)) & (c.index <= event_date + pd.Timedelta(days=3))]['bond_yield_10y'] - baseline
     return s5.dropna(), s3.dropna()
@@ -50,13 +56,13 @@ def run():
     
 
     lines = [
-         * 80,
-        ,
-         * 80,
-        ,
-        ,
-        ,
-        
+        '=' * 80,
+        'H1 EVENT STUDY: +/-5d and +/-3d around ECB hikes (abnormal yields)',
+        '=' * 80,
+        '',
+        'Abnormal yield = yield - mean(yield over t-30..t-1). One-sample t-test vs 0.',
+        'Countries: HR, SI, SK, LT, FR, DE.',
+        ''
     ]
 
     plot_data5 = {title: [] for _, title in EVENTS}
@@ -77,8 +83,8 @@ def run():
             t5 = stats.ttest_1samp(s5.values, 0.0, nan_policy='omit')
             t3 = stats.ttest_1samp(s3.values, 0.0, nan_policy='omit')
             lines.append(
-                
-                
+                f"  {country}: +/-5d mean={s5.mean():.4f}, t={t5.statistic:.2f}, p={t5.pvalue:.4f}; "
+                f"+/-3d mean={s3.mean():.4f}, t={t3.statistic:.2f}, p={t3.pvalue:.4f}"
             )
             plot_data5[event_title].append(float(s5.mean()))
             plot_data3[event_title].append(float(s3.mean()))
