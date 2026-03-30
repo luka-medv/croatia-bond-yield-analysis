@@ -14,7 +14,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from typing import Tuple
 
-import numpy as np
 import pandas as pd
 from scipy import stats
 
@@ -83,22 +82,11 @@ def run() -> None:
         "",
     ]
 
-    table_rows: list[dict[str, float | str]] = []
-
     lines.append(f"Event: {EVENT_LABEL}")
     for country in COUNTRIES:
         series = abnormal_series(df, country, EVENT_DATE)
         if series is None:
             lines.append(f"  {country}: no data")
-            table_rows.append({
-                "Country": country,
-                "Mean +/-5d": np.nan,
-                "t-stat +/-5d": np.nan,
-                "p-value +/-5d": np.nan,
-                "Mean +/-3d": np.nan,
-                "t-stat +/-3d": np.nan,
-                "p-value +/-3d": np.nan,
-            })
             continue
 
         s5, s3 = series
@@ -109,29 +97,9 @@ def run() -> None:
             f"p={t5.pvalue:.4f}; +/-3d mean={s3.mean():.4f}, "
             f"t={t3.statistic:.2f}, p={t3.pvalue:.4f}"
         )
-        table_rows.append({
-            "Country": country,
-            "Mean +/-5d": float(s5.mean()),
-            "t-stat +/-5d": float(t5.statistic),
-            "p-value +/-5d": float(t5.pvalue),
-            "Mean +/-3d": float(s3.mean()),
-            "t-stat +/-3d": float(t3.statistic),
-            "p-value +/-3d": float(t3.pvalue),
-        })
     lines.append("")
 
     write_text("h2_event_study_results.txt", "\n".join(lines) + "\n")
-    table_df = pd.DataFrame(table_rows)
-    latex = table_df.to_latex(
-        index=False,
-        escape=False,
-        column_format="lrrrrrr",
-        float_format=lambda x: f"{x:.4f}",
-    )
-    latex = latex.replace("\\toprule", "\\hline")
-    latex = latex.replace("\\midrule", "\\hline")
-    latex = latex.replace("\\bottomrule", "\\hline")
-    write_text("table_4_11_h2_event_study.tex", latex)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
-from io_utils import write_text, write_with_writer
+from io_utils import write_with_writer
 from placebo_utils import compute_placebo_payload, write_standalone_placebo_report
 
 ROOT = Path(__file__).resolve().parent
@@ -104,19 +104,6 @@ def run_h2_column_c_placebos(
         write_h2_column_c_placebo_report(payload, report_filename)
 
     return payload
-
-
-def _write_simple_latex_table(df: pd.DataFrame, filename: str, column_format: str) -> None:
-    latex = df.to_latex(
-        index=False,
-        escape=False,
-        column_format=column_format,
-        float_format=lambda x: f"{x:.4f}",
-    )
-    latex = latex.replace("\\toprule", "\\hline")
-    latex = latex.replace("\\midrule", "\\hline")
-    latex = latex.replace("\\bottomrule", "\\hline")
-    write_text(filename, latex)
 
 
 def run():
@@ -336,7 +323,7 @@ def run():
     # ============================================================
     # REGRESSION RESULTS TABLE & SUMMARY
     # ============================================================
-    print("\n[10/14] Generating comprehensive results tables...")
+    print("\n[10/14] Generating comprehensive results report...")
 
     # Yields table
     results_yields = summary_col(
@@ -361,49 +348,6 @@ def run():
             'R^2': lambda x: f"{x.rsquared:.4f}"
         }
     )
-
-    latex_yields = results_yields.as_latex()
-    latex_spreads = results_spreads.as_latex()
-    replacements = {
-        "croatia_ex_post": "Croatia x Post",
-        "post_euro_adoption": "Post Euro Adoption",
-        "is_croatia": "Croatia Indicator",
-        "gdp_growth_quarterly": "GDP Growth",
-        "inflation_hicp": "Inflation (HICP)",
-        "public_debt_gdp": "Public Debt",
-        "C(country)[T.Slovakia]": "Slovakia",
-        "C(country)[T.Slovenia]": "Slovenia",
-        "C(country)[T.Lithuania]": "Lithuania",
-    }
-    for old, new in replacements.items():
-        latex_yields = latex_yields.replace(old, new)
-        latex_spreads = latex_spreads.replace(old, new)
-    write_text(
-        "table_4_7_h2_primary.tex",
-        "% Panel A: Bond yield regressions\n" + latex_yields + "\n\n% Panel B: Spread regressions\n" + latex_spreads,
-    )
-
-    placebo_table = pd.DataFrame([
-        {
-            "Test": row["name"],
-            "Date": row["date"],
-            "Months Before": row["months_before"],
-            "Coefficient": row["coefficient"],
-            "Std. Error": row["se"],
-            "P-value": row["pvalue"],
-        }
-        for row in placebo_results
-    ])
-    _write_simple_latex_table(placebo_table, "table_4_9_h2_placebo.tex", "llrrrr")
-
-    robustness_table = pd.DataFrame([
-        {"Specification": "Main specification", "Coefficient": did_spreads, "P-value": did_spreads_pval},
-        {"Specification": "Exclude Slovenia", "Coefficient": robust_coef_1, "P-value": robust_pval_1},
-        {"Specification": "Exclude Slovakia", "Coefficient": robust_coef_2, "P-value": robust_pval_2},
-        {"Specification": "Exclude Lithuania", "Coefficient": robust_coef_3, "P-value": robust_pval_3},
-        {"Specification": "2022-2024 only", "Coefficient": robust_coef_4, "P-value": robust_pval_4},
-    ])
-    _write_simple_latex_table(robustness_table, "table_4_10_h2_robustness.tex", "lrr")
 
     def _write_results(handle):
         first_significant = next((r for r in placebo_results if r['pvalue'] < 0.05), None)
@@ -499,9 +443,6 @@ def run():
     print("\nOutput files created:")
     print("  1. output/h2_regression_results.txt")
     print("  2. output/h2_placebo_results.txt")
-    print("  3. output/tables/table_4_7_h2_primary.tex")
-    print("  4. output/tables/table_4_9_h2_placebo.tex")
-    print("  5. output/tables/table_4_10_h2_robustness.tex")
     print("\nKey Findings:")
     print(f"  Spread Reduction: {spread_reduction:.4f} pp")
     print(f"  Main DiD Coefficient (Spreads): {did_spreads:.4f} ({significance_label})")

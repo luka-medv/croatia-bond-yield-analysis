@@ -23,7 +23,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 if sys.platform == 'win32':
     sys.stdout.reconfigure(encoding='utf-8')
 
-from io_utils import write_text, write_with_writer
+from io_utils import write_with_writer
 from placebo_utils import compute_placebo_payload, write_standalone_placebo_report
 
 ROOT = Path(__file__).resolve().parent
@@ -103,19 +103,6 @@ def run_h1_column_c_placebos(
         write_h1_column_c_placebo_report(payload, report_filename)
 
     return payload
-
-
-def _write_simple_latex_table(df: pd.DataFrame, filename: str, column_format: str) -> None:
-    latex = df.to_latex(
-        index=False,
-        escape=False,
-        column_format=column_format,
-        float_format=lambda x: f"{x:.4f}",
-    )
-    latex = latex.replace("\\toprule", "\\hline")
-    latex = latex.replace("\\midrule", "\\hline")
-    latex = latex.replace("\\bottomrule", "\\hline")
-    write_text(filename, latex)
 
 
 def run():
@@ -302,7 +289,7 @@ def run():
     # ============================================================
     # REGRESSION RESULTS TABLE & SUMMARY
     # ============================================================
-    print("\n[9/13] Generating comprehensive results table...")
+    print("\n[9/13] Generating comprehensive results report...")
 
     results_table = summary_col(
         [model1, model2, model3, model4],
@@ -315,44 +302,6 @@ def run():
             'Adj. R²': lambda x: f"{x.rsquared_adj:.4f}"
         }
     )
-
-    latex_regression = results_table.as_latex()
-    for old, new in {
-        "croatia_ex_post": "Croatia x Post",
-        "post_july_2022_hike": "Post July 2022",
-        "is_croatia": "Croatia Indicator",
-        "gdp_growth_quarterly": "GDP Growth",
-        "inflation_hicp": "Inflation (HICP)",
-        "public_debt_gdp": "Public Debt",
-        "C(country)[T.Slovakia]": "Slovakia",
-        "C(country)[T.Slovenia]": "Slovenia",
-        "C(country)[T.Lithuania]": "Lithuania",
-    }.items():
-        latex_regression = latex_regression.replace(old, new)
-    write_text("table_4_1_h1_regression.tex", latex_regression)
-
-    placebo_table = pd.DataFrame([
-        {
-            "Test": row["name"],
-            "Date": row["date"],
-            "Months Before": row["months_before"],
-            "Coefficient": row["coefficient"],
-            "Std. Error": row["se"],
-            "P-value": row["pvalue"],
-        }
-        for row in placebo_results
-    ])
-    _write_simple_latex_table(placebo_table, "table_4_3_h1_placebo.tex", "llrrrr")
-
-    robustness_table = pd.DataFrame([
-        {"Specification": "Main specification", "Coefficient": did_coef, "P-value": did_pval},
-        {"Specification": "Exclude Slovenia", "Coefficient": robust_coef_1, "P-value": robust_pval_1},
-        {"Specification": "Exclude Slovakia", "Coefficient": robust_coef_2, "P-value": robust_pval_2},
-        {"Specification": "Exclude Lithuania", "Coefficient": robust_coef_3, "P-value": robust_pval_3},
-        {"Specification": "2022-2024 only", "Coefficient": robust_coef_4, "P-value": robust_pval_4},
-    ])
-    _write_simple_latex_table(robustness_table, "table_4_5_h1_robustness.tex", "lrr")
-
 
     if did_pval < 0.01:
         did_significance = "highly significant (p < 0.01)"

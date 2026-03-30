@@ -1,8 +1,5 @@
 """
-Single entry point: run every analysis script in order and verify outputs.
-
-Usage:
-    python analysis/run_all.py
+Single entry point: run the lean paper replication pipeline and verify outputs.
 """
 
 import sys
@@ -12,29 +9,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OUTPUT_REPORTS = ROOT.parent / "OUTPUTS" / "reports"
 OUTPUT_FIGURES = ROOT.parent / "OUTPUTS" / "figures"
-OUTPUT_TABLES = ROOT.parent / "OUTPUTS" / "tables"
+DATA_DIR = ROOT.parent / "DATA"
 
-# Execution order — each entry is (module_name, expected_outputs)
 PIPELINE = [
-    ("paper_tables", [
-        OUTPUT_TABLES / "table_3_1_macro_summary.tex",
-        OUTPUT_TABLES / "table_3_2_variable_definitions.tex",
-        OUTPUT_TABLES / "table_4_2_h1_descriptive.tex",
-        OUTPUT_TABLES / "table_4_8_h2_spread_descriptive.tex",
+    ("descriptive_exports", [
+        DATA_DIR / "descriptive_stats_macro.csv",
+        DATA_DIR / "descriptive_stats_h1_yields.csv",
+        DATA_DIR / "descriptive_stats_h2_spreads.csv",
     ]),
     ("h1_ecb_rate_hike_impact", [
         OUTPUT_REPORTS / "h1_regression_results.txt",
         OUTPUT_REPORTS / "h1_placebo_results.txt",
-        OUTPUT_TABLES / "table_4_1_h1_regression.tex",
-        OUTPUT_TABLES / "table_4_3_h1_placebo.tex",
-        OUTPUT_TABLES / "table_4_5_h1_robustness.tex",
     ]),
     ("h1_hac_vif_appendix", [
         OUTPUT_REPORTS / "h1_hac_results.txt",
     ]),
     ("h1_event_study", [
         OUTPUT_REPORTS / "h1_event_study_results.txt",
-        OUTPUT_TABLES / "table_4_4_h1_event_study.tex",
     ]),
     ("h1b_ecb_feb2023_impact", [
         OUTPUT_REPORTS / "h1b_regression_results.txt",
@@ -42,16 +33,12 @@ PIPELINE = [
     ("h2_euro_adoption_impact", [
         OUTPUT_REPORTS / "h2_regression_results.txt",
         OUTPUT_REPORTS / "h2_placebo_results.txt",
-        OUTPUT_TABLES / "table_4_7_h2_primary.tex",
-        OUTPUT_TABLES / "table_4_9_h2_placebo.tex",
-        OUTPUT_TABLES / "table_4_10_h2_robustness.tex",
     ]),
     ("h2_hac_vif_appendix", [
         OUTPUT_REPORTS / "h2_hac_results.txt",
     ]),
     ("h2_event_study", [
         OUTPUT_REPORTS / "h2_event_study_results.txt",
-        OUTPUT_TABLES / "table_4_11_h2_event_study.tex",
     ]),
     ("f_test_comparison", [
         OUTPUT_REPORTS / "f_test_comparison_results.txt",
@@ -68,7 +55,6 @@ PIPELINE = [
 
 
 def main() -> None:
-    # Ensure the analysis package is importable
     sys.path.insert(0, str(ROOT.parent))
     sys.path.insert(0, str(ROOT))
 
@@ -88,11 +74,10 @@ def main() -> None:
             failed += 1
             continue
 
-        # Verify outputs
-        missing = [f for f in expected_files if not f.exists()]
+        missing = [path for path in expected_files if not path.exists()]
         if missing:
-            for f in missing:
-                print(f"  [MISSING] {f.name}")
+            for path in missing:
+                print(f"  [MISSING] {path.name}")
             failed += 1
         else:
             print(f"  [OK] {len(expected_files)} output(s) verified")
