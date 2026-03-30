@@ -20,11 +20,10 @@ Empirical analysis of the effects of ECB rate hikes and Croatia's euro adoption 
 
 ```text
 CODE/           Minimal analysis scripts
-DATA/           Bond yield, macroeconomic, and ECB event datasets
+DATA/           Bond yield, macroeconomic, ECB event datasets, and descriptive CSV exports
 OUTPUTS/
-  figures/      Plots and visualizations
-  tables/       LaTeX tables
-  reports/      Text summaries of statistical analyses
+  figures/      Final paper figures
+  reports/      Raw analytical outputs used to populate paper tables
 ```
 
 ## Usage
@@ -34,9 +33,12 @@ pip install pandas numpy statsmodels matplotlib seaborn scipy requests adjustTex
 python CODE/run_all.py
 ```
 
-`run_all.py` regenerates the paper tables, paper figures, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
+`run_all.py` regenerates the descriptive CSV exports, paper figures, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
 
-The paper-specific artefacts are organized through `paper_tables.py` and `paper_figures.py`, and both are invoked from `run_all.py`.
+The lean pipeline is organized around:
+- `descriptive_exports.py` for `DATA/descriptive_stats_*.csv`
+- `paper_figures.py` for the figure set referenced in the final Word paper
+- raw `OUTPUTS/reports/*.txt` files as the source of truth behind the regression, placebo, robustness, and event-study tables
 
 ## Data Sources
 
@@ -49,3 +51,9 @@ The paper-specific artefacts are organized through `paper_tables.py` and `paper_
 - **Core H1/H2 panel**: Croatia, Slovenia, Slovakia, Lithuania
 - **H1b extension**: Croatia, Slovenia, Slovakia, Lithuania, France, Germany
 - **Latvia**: excluded from the final panel due to incomplete Investing.com bond-yield data
+
+## Replication Notes
+
+- The repo is streamlined for the final Word paper `ECB_Croatia bonds - resolved comments.docx`.
+- Descriptive tables in the paper should be read off the refreshed CSV exports in `DATA/`.
+- Regression and event-study tables in the paper should be populated from the corresponding raw reports in `OUTPUTS/reports/`.
