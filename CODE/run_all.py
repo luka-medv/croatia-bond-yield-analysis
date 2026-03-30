@@ -38,7 +38,6 @@ PIPELINE = [
     ]),
     ("h1b_ecb_feb2023_impact", [
         OUTPUT_REPORTS / "h1b_regression_results.txt",
-        OUTPUT_FIGURES / "h1b_did_visualization.png",
         OUTPUT_FIGURES / "h1b_robustness_checks.png",
     ]),
     ("h2_euro_adoption_impact", [

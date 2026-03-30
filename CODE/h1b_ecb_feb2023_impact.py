@@ -24,8 +24,6 @@ from io_utils import save_figure, write_text
 from stats_utils import build_vif_table
 from plot_utils import (
     make_subplots,
-    place_legend,
-    adjust_text_labels,
     add_dual_outline,
     label_bars_with_significance,
 )
@@ -127,39 +125,6 @@ def run() -> None:
             lines.append(f"  {row['Variable']}: VIF=N/A")
     lines.append("")
     write_text("h1b_regression_results.txt", "\n".join(lines) + "\n")
-
-    dfh["period"] = np.where(dfh["post_feb_2023_hike"], "Post-Feb2023", "Pre-Feb2023")
-    avg_y = dfh.groupby(["country", "period"])["bond_yield_10y"].mean().reset_index()
-    cro = avg_y[avg_y["country"] == "Croatia"]
-    controls = (
-        avg_y[avg_y["country"] != "Croatia"]
-        .groupby("period")["bond_yield_10y"].mean()
-        .reset_index()
-    )
-
-    fig, ax = make_subplots()
-    periods = ["Pre-Feb2023", "Post-Feb2023"]
-    cy = [float(cro[cro["period"] == p]["bond_yield_10y"].iloc[0]) for p in periods]
-    oy = [float(controls[controls["period"] == p]["bond_yield_10y"].iloc[0]) for p in periods]
-    ax.plot([0, 1], cy, marker="o", markersize=12, linewidth=3, label="Croatia (Treatment)", color="#e74c3c")
-    ax.plot([0, 1], oy, marker="s", markersize=12, linewidth=3, label="Controls (SI, SK, LT, FR, DE)", color="#3498db")
-    counterfactual = cy[0] + (oy[1] - oy[0])
-    ax.plot([0, 1], [cy[0], counterfactual], linestyle="--", linewidth=2.5, color="#95a5a6", label="Croatia Counterfactual")
-    ax.annotate("", xy=(1, cy[1]), xytext=(1, counterfactual), arrowprops=dict(arrowstyle="<->", color="green" if did_hac[0] < 0 else "red", lw=3))
-    ax.text(
-        1.05,
-        (cy[1] + counterfactual) / 2,
-        f"DiD (HAC):\n{did_hac[0]:.4f}pp",
-        fontsize=11,
-        color="green" if did_hac[0] < 0 else "red",
-        bbox=dict(boxstyle="round", facecolor="white", edgecolor="green" if did_hac[0] < 0 else "red", linewidth=2),
-    )
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Pre (Before Feb 2, 2023)", "Post (After Feb 2, 2023)"])
-    ax.set_ylabel("Average 10-Year Bond Yield (%)", fontsize=12)
-    place_legend(ax, location="upper left", anchor=(0.02, 1.02), ncol=1)
-    ax.grid(True, alpha=0.3)
-    save_figure(fig, "h1b_did_visualization.png", dpi=300)
 
     fig, ax = make_subplots(figsize=(9, 6))
     specs = ["Main (HAC)", "Exclude FR/DE (HAC)"]
