@@ -12,9 +12,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 OUTPUT_REPORTS = ROOT.parent / "OUTPUTS" / "reports"
 OUTPUT_FIGURES = ROOT.parent / "OUTPUTS" / "figures"
+OUTPUT_TABLES = ROOT.parent / "OUTPUTS" / "tables"
 
 # Execution order — each entry is (module_name, expected_outputs)
 PIPELINE = [
+    ("descriptive_tables", [
+        OUTPUT_TABLES / "data_coverage_table.tex",
+        OUTPUT_TABLES / "descriptive_statistics_table.tex",
+        OUTPUT_TABLES / "h1_descriptive_statistics.tex",
+        OUTPUT_TABLES / "h2_spread_statistics.tex",
+        OUTPUT_TABLES / "macro_summary_table.tex",
+    ]),
     ("h1_ecb_rate_hike_impact", [
         OUTPUT_REPORTS / "h1_regression_results.txt",
         OUTPUT_REPORTS / "h1_placebo_results.txt",

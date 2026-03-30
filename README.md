@@ -19,7 +19,7 @@ Empirical analysis of the effects of ECB rate hikes and Croatia's euro adoption 
 ## Structure
 
 ```text
-CODE/           Python analysis scripts (run_all.py is the entry point)
+CODE/           Minimal analysis scripts
 DATA/           Bond yield, macroeconomic, and ECB event datasets
 OUTPUTS/
   figures/      Plots and visualizations
@@ -32,7 +32,12 @@ OUTPUTS/
 ```bash
 pip install pandas numpy statsmodels matplotlib seaborn scipy requests adjustText
 python CODE/run_all.py
+python CODE/regenerate_thesis_figures.py
 ```
+
+`run_all.py` regenerates the descriptive tables, regression reports, placebo outputs, event studies, HAC/VIF appendix outputs, and comparison tests.
+
+`regenerate_thesis_figures.py` rebuilds the four publication-style thesis figures that are kept separately from the core regression pipeline.
 
 ## Data Sources
 
