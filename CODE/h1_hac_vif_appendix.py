@@ -69,7 +69,7 @@ def run():
     lines.append('')
     write_text('h1_hac_results.txt', '\n'.join(lines) + '\n')
 
-    print('Saved: analysis/output/reports/h1_hac_results.txt')
+print('Saved: analysis/output/raw_outputs/h1_hac_results.txt')
 
 
 if __name__ == '__main__':

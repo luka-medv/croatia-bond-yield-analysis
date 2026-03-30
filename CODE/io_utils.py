@@ -2,13 +2,13 @@
 Shared utilities for managing analysis outputs.
 
 Provides a single place to determine where artefacts (figures, tables,
-textual reports) are written under the OUTPUTS directory.
+textual raw outputs) are written under the OUTPUTS directory.
 
 Directory layout expected:
     Codebase/
         CODE/       <- this file lives here
         DATA/       <- input_data.csv, descriptive exports
-        OUTPUTS/    <- reports/, figures/
+        OUTPUTS/    <- raw_outputs/, figures/
 """
 
 from __future__ import annotations
@@ -22,14 +22,12 @@ ANALYSIS_ROOT = Path(__file__).resolve().parent          # CODE/
 PROJECT_ROOT = ANALYSIS_ROOT.parent                       # Codebase/
 OUTPUT_ROOT = PROJECT_ROOT / "OUTPUTS"
 FIGURES_DIR = OUTPUT_ROOT / "figures"
-TABLES_DIR = OUTPUT_ROOT / "tables"
-REPORTS_DIR = OUTPUT_ROOT / "reports"
+RAW_OUTPUTS_DIR = OUTPUT_ROOT / "raw_outputs"
 
-for directory in (FIGURES_DIR, TABLES_DIR, REPORTS_DIR):
+for directory in (FIGURES_DIR, RAW_OUTPUTS_DIR):
     directory.mkdir(parents=True, exist_ok=True)
 
 _FIGURE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".pdf"}
-_TABLE_EXTENSIONS = {".tex"}
 
 
 def _target_dir(filename: str) -> Path:
@@ -37,9 +35,7 @@ def _target_dir(filename: str) -> Path:
     ext = Path(filename).suffix.lower()
     if ext in _FIGURE_EXTENSIONS:
         return FIGURES_DIR / filename
-    if ext in _TABLE_EXTENSIONS:
-        return TABLES_DIR / filename
-    return REPORTS_DIR / filename
+    return RAW_OUTPUTS_DIR / filename
 
 
 def save_figure(fig, filename: str, **kwargs) -> Path:
@@ -52,7 +48,7 @@ def save_figure(fig, filename: str, **kwargs) -> Path:
 
 
 def write_text(filename: str, content: str, *, encoding: str = "utf-8") -> Path:
-    """Write textual content (reports, tables) to the output directory."""
+    """Write textual content to the structured raw-output directory."""
     target = _target_dir(filename)
     target.write_text(content, encoding=encoding)
     print(f"[saved] file -> {target.relative_to(PROJECT_ROOT)}")
@@ -84,8 +80,7 @@ __all__ = [
     "PROJECT_ROOT",
     "OUTPUT_ROOT",
     "FIGURES_DIR",
-    "TABLES_DIR",
-    "REPORTS_DIR",
+    "RAW_OUTPUTS_DIR",
     "save_figure",
     "write_text",
     "write_with_writer",
