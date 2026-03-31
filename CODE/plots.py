@@ -1,5 +1,5 @@
 """
-Generate the final thesis figures referenced in the paper.
+Generate the final figure set used in the paper.
 """
 
 from __future__ import annotations
@@ -8,12 +8,11 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
-
-from io_utils import save_figure
 
 if sys.platform == "win32":
     try:
@@ -22,7 +21,11 @@ if sys.platform == "win32":
         pass
 
 ROOT = Path(__file__).resolve().parent
-DATA_PATH = ROOT.parent / "DATA" / "input_data.csv"
+PROJECT_ROOT = ROOT.parent
+DATA_PATH = PROJECT_ROOT / "DATA" / "input_data.csv"
+FIGURES_DIR = PROJECT_ROOT / "OUTPUTS" / "figures"
+FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
 MA_WINDOW = 30
 PAPER_COUNTRIES = ["Croatia", "Slovenia", "Slovakia", "Lithuania", "France", "Germany"]
 CONTROL_COUNTRIES = ["Slovenia", "Slovakia", "Lithuania"]
@@ -35,26 +38,36 @@ COLORS = {
     "Germany": "#374151",
 }
 
-plt.rcParams.update({
-    "figure.facecolor": "white",
-    "axes.facecolor": "white",
-    "axes.grid": True,
-    "axes.grid.axis": "y",
-    "grid.alpha": 0.30,
-    "grid.linestyle": ":",
-    "grid.linewidth": 0.8,
-    "font.size": 11,
-    "axes.titlesize": 14,
-    "axes.labelsize": 13,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11,
-    "legend.fontsize": 10,
-    "legend.framealpha": 0.95,
-    "figure.dpi": 100,
-    "savefig.dpi": 300,
-    "savefig.bbox": "tight",
-    "savefig.pad_inches": 0.15,
-})
+plt.rcParams.update(
+    {
+        "figure.facecolor": "white",
+        "axes.facecolor": "white",
+        "axes.grid": True,
+        "axes.grid.axis": "y",
+        "grid.alpha": 0.30,
+        "grid.linestyle": ":",
+        "grid.linewidth": 0.8,
+        "font.size": 11,
+        "axes.titlesize": 14,
+        "axes.labelsize": 13,
+        "xtick.labelsize": 11,
+        "ytick.labelsize": 11,
+        "legend.fontsize": 10,
+        "legend.framealpha": 0.95,
+        "figure.dpi": 100,
+        "savefig.dpi": 300,
+        "savefig.bbox": "tight",
+        "savefig.pad_inches": 0.15,
+    }
+)
+
+
+def _save_figure(fig, filename: str, **kwargs) -> Path:
+    target = FIGURES_DIR / filename
+    fig.savefig(target, **kwargs)
+    plt.close(fig)
+    print(f"[saved] figure -> {target.relative_to(PROJECT_ROOT)}")
+    return target
 
 
 def _moving_average(series: pd.Series) -> pd.Series:
@@ -100,7 +113,7 @@ def _create_figure_3_1(df: pd.DataFrame) -> None:
     ax.set_ylabel("10-Year Bond Yield (%)", fontweight="bold")
     ax.legend(loc="upper left", ncol=2)
     _decorate_date_axis(fig, ax)
-    save_figure(fig, "figure_3_1_all_countries_yields.png")
+    _save_figure(fig, "figure_3_1_all_countries_yields.png")
 
 
 def _create_figure_3_3(df: pd.DataFrame) -> None:
@@ -127,7 +140,7 @@ def _create_figure_3_3(df: pd.DataFrame) -> None:
     ax.set_ylabel("Spread vs Germany (pp)", fontweight="bold")
     ax.legend(loc="upper left", ncol=2)
     _decorate_date_axis(fig, ax)
-    save_figure(fig, "figure_3_3_spreads_vs_germany.png")
+    _save_figure(fig, "figure_3_3_spreads_vs_germany.png")
 
 
 def _create_figure_4_1(df: pd.DataFrame) -> None:
@@ -136,7 +149,6 @@ def _create_figure_4_1(df: pd.DataFrame) -> None:
         & (df["date"] >= "2021-01-01")
         & (df["date"] <= "2024-12-31")
     ].copy()
-
     croatia = panel[panel["country"] == "Croatia"].set_index("date")["bond_yield_10y"].sort_index()
     control = panel[panel["country"] != "Croatia"].groupby("date")["bond_yield_10y"].mean().sort_index()
     croatia_ma = _moving_average(croatia)
@@ -155,7 +167,7 @@ def _create_figure_4_1(df: pd.DataFrame) -> None:
     ax.set_ylabel("10-Year Bond Yield (%)", fontweight="bold")
     ax.legend(loc="upper left")
     _decorate_date_axis(fig, ax)
-    save_figure(fig, "figure_4_1_h1_did_visual.png")
+    _save_figure(fig, "figure_4_1_h1_did_visual.png")
 
 
 def _create_figure_4_5(df: pd.DataFrame) -> None:
@@ -165,7 +177,6 @@ def _create_figure_4_5(df: pd.DataFrame) -> None:
         & (df["date"] >= "2021-01-01")
         & (df["date"] <= "2024-12-31")
     ].copy()
-
     croatia = panel[panel["country"] == "Croatia"].set_index("date")["bond_yield_10y"].sort_index()
     control = panel[panel["country"] != "Croatia"].groupby("date")["bond_yield_10y"].mean().sort_index()
     croatia_ma = _moving_average(croatia)
@@ -185,7 +196,7 @@ def _create_figure_4_5(df: pd.DataFrame) -> None:
     ax.set_ylabel("10-Year Bond Yield (%)", fontweight="bold")
     ax.legend(loc="upper left")
     _decorate_date_axis(fig, ax)
-    save_figure(fig, "figure_4_5_h1b_did_visual.png")
+    _save_figure(fig, "figure_4_5_h1b_did_visual.png")
 
 
 def _create_figure_4_7(df: pd.DataFrame) -> None:
@@ -194,7 +205,6 @@ def _create_figure_4_7(df: pd.DataFrame) -> None:
         & (df["date"] >= "2021-01-01")
         & (df["date"] <= "2024-12-31")
     ].copy()
-
     croatia = panel[panel["country"] == "Croatia"].set_index("date")["spread_vs_germany"].sort_index()
     control = panel[panel["country"] != "Croatia"].groupby("date")["spread_vs_germany"].mean().sort_index()
     croatia_ma = _moving_average(croatia)
@@ -213,7 +223,7 @@ def _create_figure_4_7(df: pd.DataFrame) -> None:
     ax.set_ylabel("Yield Spread vs Germany (pp)", fontweight="bold")
     ax.legend(loc="upper left")
     _decorate_date_axis(fig, ax)
-    save_figure(fig, "figure_4_7_h2_spread_convergence.png")
+    _save_figure(fig, "figure_4_7_h2_spread_convergence.png")
 
 
 def _create_figure_3_4(df: pd.DataFrame) -> None:
@@ -304,15 +314,17 @@ def _create_figure_3_4(df: pd.DataFrame) -> None:
     ax2.spines["right"].set_visible(False)
 
     fig.suptitle("Croatia's Euro Adoption Timeline: Yields and Spreads", fontsize=15, fontweight="bold", y=0.98)
-    save_figure(fig, "figure_3_4_croatia_euro_timeline.png")
+    _save_figure(fig, "figure_3_4_croatia_euro_timeline.png")
 
 
-def run() -> None:
-    print("=" * 80)
-    print("GENERATING PAPER FIGURES")
-    print("=" * 80)
+def run(*, verbose: bool = True) -> list[Path]:
+    if verbose:
+        print("=" * 80)
+        print("GENERATING PAPER FIGURES")
+        print("=" * 80)
     df = pd.read_csv(DATA_PATH, parse_dates=["date"])
-    print(f"[ok] Loaded {len(df):,} observations")
+    if verbose:
+        print(f"[ok] Loaded {len(df):,} observations")
 
     _create_figure_3_1(df)
     _create_figure_3_3(df)
@@ -321,7 +333,17 @@ def run() -> None:
     _create_figure_4_5(df)
     _create_figure_4_7(df)
 
-    print("[ok] Paper figures generated")
+    if verbose:
+        print("[ok] Paper figures generated")
+
+    return [
+        FIGURES_DIR / "figure_3_1_all_countries_yields.png",
+        FIGURES_DIR / "figure_3_3_spreads_vs_germany.png",
+        FIGURES_DIR / "figure_3_4_croatia_euro_timeline.png",
+        FIGURES_DIR / "figure_4_1_h1_did_visual.png",
+        FIGURES_DIR / "figure_4_5_h1b_did_visual.png",
+        FIGURES_DIR / "figure_4_7_h2_spread_convergence.png",
+    ]
 
 
 if __name__ == "__main__":
